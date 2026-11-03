@@ -1,0 +1,14 @@
+# Replace with your actual domain before enabling the "proxy" profile.
+# Caddy automatically obtains and renews a Let's Encrypt HTTPS certificate
+# for it — no extra configuration needed.
+patrimoine.exemple.fr {
+	reverse_proxy app:3000
+
+	encode gzip
+
+	# Defense in depth on top of the app's own security headers.
+	header {
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+	}
+}

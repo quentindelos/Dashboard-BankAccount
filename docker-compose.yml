@@ -1,0 +1,40 @@
+services:
+  app:
+    build:
+      context: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=file:../data/dashboard.db
+    volumes:
+      # The SQLite file lives here. Back this directory up (or copy it)
+      # whenever you want a snapshot outside of the app's own JSON export.
+      - ./data:/app/data
+    ports:
+      # Direct access, e.g. http://raspberrypi.local:3000 on your LAN.
+      # Remove this if you only want to reach the app through Caddy below.
+      - "3000:3000"
+
+  # Optional reverse proxy for exposing the app on your own domain with
+  # automatic HTTPS (Let's Encrypt). Only starts with the "proxy" profile:
+  #   docker compose --profile proxy up -d
+  # Point your domain's DNS A/AAAA record at this machine first, and set
+  # COOKIE_SECURE=true in .env once traffic actually arrives over HTTPS.
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["proxy"]
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

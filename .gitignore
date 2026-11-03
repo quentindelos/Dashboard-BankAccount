@@ -1,0 +1,36 @@
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# Secrets & local env
+.env
+.env.local
+.env.*.local
+
+# Database (contains your personal financial data — never commit)
+prisma/*.db
+prisma/*.db-journal
+data/
+*.sqlite
+*.sqlite3
+
+# Backups / exports (contain your personal financial data)
+backups/
+*.backup.json
+
+# Misc
+.DS_Store
+npm-debug.log*
+.vscode/
+
+# tr_import.py: credentials/cookie, downloaded statements, debug dumps —
+# all contain personal financial data or live session secrets.
+scripts/tr_import.config.json
+scripts/*.venv/
+scripts/venv/
+scripts/__pycache__/
+scripts/statements/
+scripts/*.pdf
+scripts/*.debug.txt

@@ -1,0 +1,84 @@
+// Prisma schema for the patrimoine dashboard.
+//
+// SQLite by default (single file, trivial to back up / move to a new
+// machine). To migrate to Postgres later (e.g. on GCP + Cloud SQL):
+//   1. change `provider = "sqlite"` to `provider = "postgresql"` below
+//   2. point DATABASE_URL at the Postgres instance
+//   3. run `npx prisma migrate dev` to generate a fresh migration
+// The rest of the app talks to Prisma's API only, so nothing else changes.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Single-user app: exactly one row is expected to ever exist here, but the
+// model stays normal (no hardcoded id) so nothing breaks if that changes.
+model User {
+  id             String   @id @default(cuid())
+  username       String   @unique
+  passwordHash   String
+  totpSecret     String // encrypted at rest is overkill for a single local secret column already behind auth, kept plain in DB file
+  totpEnabled    Boolean  @default(false)
+  failedLogins   Int      @default(0)
+  lockedUntil    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// SQLite has no native enum type, so `type` is a plain String here. The set
+// of allowed values (ASSURANCE_VIE, LIVRET, CTO, PEA, PER, AUTRE) is enforced
+// in the application layer — see accountTypeValues in src/lib/validation.ts.
+model Account {
+  id          String   @id @default(cuid())
+  name        String // e.g. "Livret A", "PEA Bourse Direct"
+  type        String
+  institution String? // e.g. "Boursorama", "Fortuneo" (optional)
+  note        String?
+  archived    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  entries     Entry[]
+  positions   Position[]
+
+  @@index([type])
+}
+
+// One manually-entered valuation snapshot for an account at a given date.
+model Entry {
+  id        String   @id @default(cuid())
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  date      DateTime // the valuation date (day granularity)
+  value     Float // balance / valuation in EUR at that date
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@unique([accountId, date])
+  @@index([accountId, date])
+}
+
+// One instrument holding within an account at a given snapshot date — e.g.
+// one row of a Trade Republic "net worth statement" PDF. A full re-import
+// for a given (accountId, date) replaces that date's positions wholesale
+// (see /api/import/trade-republic), since each snapshot is a complete
+// picture of the account's holdings on that day, not an incremental delta.
+model Position {
+  id        String   @id @default(cuid())
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  date      DateTime // the snapshot date (day granularity, matches an Entry.date)
+  name      String // instrument name, e.g. "NVIDIA Corp."
+  isin      String? // null for instruments without one (e.g. some crypto lines)
+  quantity  Float
+  price     Float // price per unit in EUR at that date
+  value     Float // quantity * price, as stated on the source statement
+  createdAt DateTime @default(now())
+
+  @@unique([accountId, date, name])
+  @@index([accountId, date])
+}
