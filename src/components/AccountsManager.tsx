@@ -4,12 +4,15 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { accountTypeLabel, ACCOUNT_TYPE_ORDER } from "@/lib/accountTypes";
+import Logo from "@/components/Logo";
+import type { LogoKey } from "@/lib/logos";
 
 interface AccountRow {
   id: string;
   name: string;
   type: string;
   institution: string | null;
+  logo?: LogoKey | null;
   latestValue: number | null;
   latestDate: string | null;
 }
@@ -116,7 +119,10 @@ export default function AccountsManager({ initialAccounts }: { initialAccounts: 
             {accounts.map((a) => (
               <tr key={a.id}>
                 <td>
-                  <Link href={`/accounts/${a.id}`}>{a.name}</Link>
+                  <span className="name-with-logo">
+                    <Logo logo={a.logo} name={a.institution ?? a.name} size={26} />
+                    <Link href={`/accounts/${a.id}`}>{a.name}</Link>
+                  </span>
                 </td>
                 <td className="secondary">{accountTypeLabel(a.type)}</td>
                 <td className="secondary">{a.institution ?? "—"}</td>

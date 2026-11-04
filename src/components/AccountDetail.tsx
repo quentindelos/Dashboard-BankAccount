@@ -3,10 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { accountTypeLabel } from "@/lib/accountTypes";
-import { chartChrome } from "@/lib/chartTheme";
-import { useIsDark } from "@/lib/useIsDark";
+import { accountTypeLabel, isTradeRepublic } from "@/lib/accountTypes";
+import TimeSeriesChart, { RangeTabs, extendToToday, sliceRange, type RangeKey } from "@/components/TimeSeriesChart";
+import { Delta, eur0, formatPct, signed } from "@/components/ui";
+import Logo from "@/components/Logo";
+import type { LogoKey } from "@/lib/logos";
 
 interface EntryRow {
   id: string;
@@ -19,9 +20,11 @@ interface PositionRow {
   date: string;
   name: string;
   isin: string | null;
+  logo: LogoKey | null;
   quantity: number;
   price: number;
   value: number;
+  costBasis: number | null;
 }
 
 const currencyFmt = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });
@@ -37,13 +40,20 @@ export default function AccountDetail({
   entries: initialEntries,
   positions,
 }: {
-  account: { id: string; name: string; type: string; institution: string | null; note: string | null };
+  account: {
+    id: string;
+    name: string;
+    type: string;
+    institution: string | null;
+    note: string | null;
+    logo: LogoKey | null;
+    contributions: number | null;
+  };
   entries: EntryRow[];
   positions: PositionRow[];
 }) {
   const router = useRouter();
-  const isDark = useIsDark();
-  const chrome = chartChrome(isDark);
+  const [range, setRange] = useState<RangeKey>("TOUT");
   const [entries, setEntries] = useState(initialEntries);
   const [date, setDate] = useState(todayIso());
   const [value, setValue] = useState("");
@@ -59,6 +69,32 @@ export default function AccountDetail({
   const [selectedPositionDate, setSelectedPositionDate] = useState(positionDates[0] ?? "");
   const positionsForDate = positions.filter((p) => p.date.slice(0, 10) === selectedPositionDate);
   const positionsTotal = positionsForDate.reduce((sum, p) => sum + p.value, 0);
+  const [contributions, setContributions] = useState<number | null>(account.contributions);
+  const [contribInput, setContribInput] = useState(account.contributions !== null ? String(account.contributions).replace(".", ",") : "");
+  const [contribMsg, setContribMsg] = useState("");
+
+  async function saveContributions(e: React.FormEvent) {
+    e.preventDefault();
+    setContribMsg("");
+    const raw = contribInput.replace(/\s/g, "").replace(",", ".");
+    const next = raw === "" ? null : Number(raw);
+    if (next !== null && (!Number.isFinite(next) || next < 0)) {
+      setContribMsg("Montant invalide.");
+      return;
+    }
+    const res = await fetch(`/api/accounts/${account.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contributions: next }),
+    });
+    if (!res.ok) {
+      setContribMsg("Impossible d'enregistrer.");
+      return;
+    }
+    setContributions(next);
+    setContribMsg("Enregistré ✓");
+    router.refresh();
+  }
 
   async function handleAddEntry(e: React.FormEvent) {
     e.preventDefault();
@@ -101,48 +137,55 @@ export default function AccountDetail({
     }
   }
 
-  const chartData = entries.map((en) => ({ date: en.date.slice(0, 10), value: en.value }));
+  const chartRows = sliceRange(
+    extendToToday(entries.map((en) => ({ t: Date.parse(en.date.slice(0, 10)), total: en.value }))),
+    range
+  );
+  const latestValue = entries.at(-1)?.value ?? 0;
+  const managed = isTradeRepublic(account.institution);
+  const positionsCost = positionsForDate.every((p) => p.costBasis !== null)
+    ? positionsForDate.reduce((s, p) => s + p.quantity * (p.costBasis ?? 0), 0)
+    : null;
 
   return (
     <>
-      <p>
+      <p style={{ margin: "0 0 14px" }}>
         <Link href="/accounts">&larr; Retour aux comptes</Link>
       </p>
       <div className="card">
-        <h1>{account.name}</h1>
-        <p className="secondary">
+        <div className="hero-date">
           {accountTypeLabel(account.type)}
           {account.institution ? ` · ${account.institution}` : ""}
-        </p>
-      </div>
-
-      <div className="card">
-        <h2>Historique</h2>
-        {chartData.length < 2 ? (
-          <p className="muted">Ajoute au moins deux relevés pour voir l'évolution.</p>
-        ) : (
-          <ResponsiveContainer width="100%" height={240}>
-            <AreaChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="fill-account" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.35} />
-                  <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.05} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid stroke={chrome.gridline} vertical={false} />
-              <XAxis dataKey="date" tickFormatter={(d) => dateFmt.format(new Date(d))} stroke={chrome.baseline} tick={{ fill: chrome.textMuted, fontSize: 12 }} minTickGap={32} />
-              <YAxis stroke={chrome.baseline} tick={{ fill: chrome.textMuted, fontSize: 12 }} tickFormatter={(v) => currencyFmt.format(v).replace(",00", "")} width={80} />
-              <Tooltip
-                contentStyle={{ background: chrome.surface, border: `1px solid ${chrome.border}`, borderRadius: 8, fontSize: 13 }}
-                labelFormatter={(d) => dateFmt.format(new Date(d))}
-                formatter={(v: number) => [currencyFmt.format(v), account.name]}
-                itemStyle={{ color: chrome.textSecondary }}
-                labelStyle={{ color: chrome.textSecondary, marginBottom: 4 }}
-              />
-              <Area type="monotone" dataKey="value" stroke="var(--accent)" strokeWidth={2} fill="url(#fill-account)" />
-            </AreaChart>
-          </ResponsiveContainer>
+        </div>
+        <h1 style={{ margin: "4px 0 2px", display: "flex", alignItems: "center", gap: 10 }}>
+          <Logo logo={account.logo} name={account.institution ?? account.name} size={30} />
+          {account.name}
+        </h1>
+        <div className="hero-value" style={{ fontSize: 34 }}>{eur0.format(latestValue)}</div>
+        {positionsCost !== null && positionsForDate.length > 0 && (
+          <Delta value={positionsTotal - positionsCost} pct={positionsCost ? (positionsTotal - positionsCost) / positionsCost : null} suffix="de plus-value latente" />
         )}
+        {positions.length === 0 && contributions !== null && (
+          <Delta
+            value={latestValue - contributions}
+            pct={contributions ? (latestValue - contributions) / contributions : null}
+            suffix={`${account.type === "LIVRET" ? "d'intérêts" : "de plus-value"} sur ${eur0.format(contributions)} versés`}
+          />
+        )}
+        <div className="chart-toolbar">
+          <span className="muted" style={{ fontSize: 13 }}>
+            {managed ? (
+              entries.length > 0 ? `Valeur quotidienne · à jour au ${dateFmt.format(new Date(entries.at(-1)!.date))}` : "Aucun historique importé"
+            ) : (
+              <>
+                {entries.length} relevé{entries.length > 1 ? "s" : ""}
+                {account.type !== "LIVRET" && entries.length > 1 ? " · ligne droite entre deux relevés" : ""}
+              </>
+            )}
+          </span>
+          <RangeTabs value={range} onChange={setRange} />
+        </div>
+        <TimeSeriesChart rows={chartRows} curve={account.type === "LIVRET" ? "stepAfter" : "linear"} height={240} seriesLabel={account.name} />
       </div>
 
       {positionDates.length > 0 && (
@@ -162,36 +205,84 @@ export default function AccountDetail({
           <p className="secondary" style={{ marginTop: 4 }}>
             Détail des instruments au {dateFmt.format(new Date(selectedPositionDate))} — {currencyFmt.format(positionsTotal)}
           </p>
+          <div className="table-wrap">
           <table style={{ marginTop: 8 }}>
             <thead>
               <tr>
                 <th>Instrument</th>
                 <th>ISIN</th>
                 <th className="num">Quantité</th>
-                <th className="num">Prix</th>
+                <th className="num">PRU</th>
+                <th className="num">Cours</th>
                 <th className="num">Valeur</th>
-                <th className="num">%</th>
+                <th className="num">+/- value</th>
+                <th className="num">Poids</th>
               </tr>
             </thead>
             <tbody>
               {positionsForDate
                 .slice()
                 .sort((a, b) => b.value - a.value)
-                .map((p) => (
-                  <tr key={p.name}>
-                    <td>{p.name}</td>
-                    <td className="secondary">{p.isin ?? "—"}</td>
-                    <td className="num">{quantityFmt.format(p.quantity)}</td>
-                    <td className="num">{currencyFmt.format(p.price)}</td>
-                    <td className="num">{currencyFmt.format(p.value)}</td>
-                    <td className="num secondary">{positionsTotal ? ((p.value / positionsTotal) * 100).toFixed(1) : 0}%</td>
-                  </tr>
-                ))}
+                .map((p) => {
+                  const gain = p.costBasis !== null ? p.value - p.quantity * p.costBasis : null;
+                  const gainPct = gain !== null && p.costBasis ? gain / (p.quantity * p.costBasis) : null;
+                  return (
+                    <tr key={p.name}>
+                      <td style={{ fontWeight: 500 }}>
+                        <span className="name-with-logo">
+                          <Logo logo={p.logo} name={p.name} size={26} />
+                          {p.name}
+                        </span>
+                      </td>
+                      <td className="secondary">{p.isin ?? "—"}</td>
+                      <td className="num">{quantityFmt.format(p.quantity)}</td>
+                      <td className="num">{p.costBasis !== null ? currencyFmt.format(p.costBasis) : "—"}</td>
+                      <td className="num">{currencyFmt.format(p.price)}</td>
+                      <td className="num">{currencyFmt.format(p.value)}</td>
+                      <td className={`num ${gain === null ? "" : gain >= 0 ? "pos" : "neg"}`}>
+                        {gain === null ? "—" : `${signed(gain, (n) => currencyFmt.format(n))} (${formatPct(Math.abs(gainPct ?? 0), 1)})`}
+                      </td>
+                      <td className="num secondary">{formatPct(positionsTotal ? p.value / positionsTotal : 0, 1)}</td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
+      {positions.length === 0 && !managed && (
+        <div className="card">
+          <h2>Total versé</h2>
+          <p className="secondary" style={{ marginTop: -4 }}>
+            L'argent que tu as mis sur ce compte, retraits déduits. Sert à calculer {account.type === "LIVRET" ? "les intérêts gagnés" : "la plus-value"}{" "}
+            et à l'additionner à celle de tes autres comptes. Pense à le mettre à jour après un versement.
+          </p>
+          <form onSubmit={saveContributions} style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap" }}>
+            <div className="field" style={{ margin: 0, minWidth: 180 }}>
+              <label htmlFor="contrib">Total versé (€)</label>
+              <input id="contrib" value={contribInput} onChange={(e) => setContribInput(e.target.value)} inputMode="decimal" placeholder="ex : 4000" />
+            </div>
+            <button className="btn btn-primary" type="submit">
+              Enregistrer
+            </button>
+            {contribMsg && <span className="muted" style={{ fontSize: 13 }}>{contribMsg}</span>}
+          </form>
+        </div>
+      )}
+
+      {managed ? (
+        <div className="card">
+          <h2>Mise à jour</h2>
+          <p className="secondary" style={{ margin: 0 }}>
+            Ce compte Trade Republic se remplit uniquement avec l'export des transactions : dans Trade Republic,{" "}
+            <strong>Relevés → Exportation des transactions</strong>, puis envoie le fichier dans{" "}
+            <Link href="/settings">Réglages → Historique Trade Republic</Link>.
+          </p>
+        </div>
+      ) : (
+        <>
       <div className="card">
         <h2>Ajouter / corriger un relevé</h2>
         <form onSubmit={handleAddEntry}>
@@ -251,6 +342,8 @@ export default function AccountDetail({
           </table>
         )}
       </div>
+        </>
+      )}
     </>
   );
 }

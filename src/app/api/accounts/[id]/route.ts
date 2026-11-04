@@ -24,7 +24,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Requête invalide" }, { status: 400 });
   }
-  const { name, type, institution, note } = parsed.data;
+  const { name, type, institution, note, emergencyFund, contributions } = parsed.data;
   const account = await prisma.account
     .update({
       where: { id },
@@ -33,6 +33,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         ...(type !== undefined && { type }),
         ...(institution !== undefined && { institution: institution || null }),
         ...(note !== undefined && { note: note || null }),
+        ...(emergencyFund !== undefined && { emergencyFund }),
+        ...(contributions !== undefined && { contributions }),
       },
     })
     .catch(() => null);

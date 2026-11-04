@@ -40,10 +40,13 @@ model Account {
   institution String? // e.g. "Boursorama", "Fortuneo" (optional)
   note        String?
   archived    Boolean  @default(false)
+  emergencyFund Boolean @default(false) // counts toward the safety cushion ("matelas de sécurité")
+  contributions Float? // total paid in (net deposits), for accounts without positions: gain = value - contributions
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   entries     Entry[]
   positions   Position[]
+  recurringExpenses RecurringExpense[]
 
   @@index([type])
 }
@@ -77,8 +80,39 @@ model Position {
   quantity  Float
   price     Float // price per unit in EUR at that date
   value     Float // quantity * price, as stated on the source statement
+  costBasis Float? // average purchase price per unit in EUR (PRU), when known
   createdAt DateTime @default(now())
 
   @@unique([accountId, date, name])
   @@index([accountId, date])
+}
+
+// App-wide preferences as simple key/value pairs (e.g. monthly expenses
+// used to size the safety cushion). Values are stored as strings.
+model Setting {
+  key   String @id
+  value String
+}
+
+// A recurring expense ("charge") shown on the monthly expenses calendar.
+// Its monthly equivalent (amount / months between occurrences) sizes the
+// safety cushion. `category` and `frequency` are validated in the app layer
+// (see src/lib/expenses.ts), since SQLite has no enums.
+model RecurringExpense {
+  id         String   @id @default(cuid())
+  name       String
+  amount     Float // EUR per occurrence
+  category   String
+  dayOfMonth Int? // 1-31, null = no fixed day (e.g. groceries)
+  frequency  String   @default("MENSUEL") // MENSUEL | TRIMESTRIEL | SEMESTRIEL | ANNUEL
+  startMonth Int      @default(1) // 1-12, first month of occurrence for non-monthly charges
+  active     Boolean  @default(true)
+  note       String?
+  // Destination account of a savings transfer (e.g. 170 €/month to the Livret Bleu).
+  accountId  String?
+  account    Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([accountId])
 }

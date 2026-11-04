@@ -34,3 +34,9 @@ scripts/__pycache__/
 scripts/statements/
 scripts/*.pdf
 scripts/*.debug.txt
+
+# Broker exports dropped here for import (personal financial data)
+imports/
+
+# TypeScript incremental build cache
+*.tsbuildinfo

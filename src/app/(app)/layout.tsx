@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import Navbar from "@/components/Navbar";
+import Sidebar from "@/components/Sidebar";
 
 // Everything under this layout is private financial data tied to the
 // current session — never statically prerender or cache it.
@@ -11,9 +11,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!session.userId) redirect("/login");
 
   return (
-    <>
-      <Navbar />
-      <main className="container">{children}</main>
-    </>
+    <div className="app-shell">
+      <Sidebar />
+      <div className="main">
+        <main className="container">{children}</main>
+      </div>
+    </div>
   );
 }
