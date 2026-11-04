@@ -28,7 +28,7 @@ export const loginSchema = z.object({
   password: z.string().min(1).max(200),
 });
 
-export const accountTypeValues = ["ASSURANCE_VIE", "LIVRET", "CTO", "PEA", "PER", "CRYPTO", "AUTRE"] as const;
+export const accountTypeValues = ["ASSURANCE_VIE", "LIVRET", "CTO", "PEA", "PER", "EPARGNE_SALARIALE", "CRYPTO", "AUTRE"] as const;
 
 export const accountSchema = z.object({
   name: z.string().trim().min(1, "Nom requis").max(100),

@@ -6,6 +6,7 @@ const KEY = "projection";
 export const projectionSettingsSchema = z.object({
   years: z.number().int().min(1).max(50).optional(),
   realTerms: z.boolean().optional(),
+  overflowTo: z.string().max(64).nullable().optional(),
   accounts: z.record(
     z.string().max(64),
     z.object({

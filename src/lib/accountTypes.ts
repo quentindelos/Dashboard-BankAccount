@@ -13,15 +13,16 @@ export const ACCOUNT_TYPE_META: Record<
   CTO: { label: "Compte-titres (CTO)", short: "CTO", colorLight: "#1baf7a", colorDark: "#199e70", cssVar: "var(--series-3)" },
   PEA: { label: "PEA", short: "PEA", colorLight: "#eda100", colorDark: "#c98500", cssVar: "var(--series-4)" },
   PER: { label: "PER", short: "PER", colorLight: "#e87ba4", colorDark: "#d55181", cssVar: "var(--series-5)" },
+  EPARGNE_SALARIALE: { label: "Épargne salariale (PEE / PERCOL)", short: "PEE", colorLight: "#008300", colorDark: "#008300", cssVar: "var(--series-6)" },
   CRYPTO: { label: "Crypto", short: "Crypto", colorLight: "#6250d6", colorDark: "#9085e9", cssVar: "var(--series-7)" },
   AUTRE: { label: "Autre", short: "Autre", colorLight: "#e34948", colorDark: "#e66767", cssVar: "var(--series-8)" },
 };
 
-export const ACCOUNT_TYPE_ORDER = ["ASSURANCE_VIE", "LIVRET", "CTO", "PEA", "PER", "CRYPTO", "AUTRE"] as const;
+export const ACCOUNT_TYPE_ORDER = ["ASSURANCE_VIE", "LIVRET", "CTO", "PEA", "PER", "EPARGNE_SALARIALE", "CRYPTO", "AUTRE"] as const;
 
 // Slots not used by any account type, handed to the 2nd, 3rd… account of a
 // type that already appears (e.g. two livrets) in per-account charts.
-const SPARE_SLOTS = ["var(--series-5)", "var(--series-8)", "var(--series-6)", "var(--series-7)"];
+const SPARE_SLOTS = ["var(--series-5)", "var(--series-8)", "var(--series-7)", "var(--series-6)"];
 
 /** Fixed color per account: its type's color, or a spare slot for a second account of the same type. */
 export function accountColors(accounts: { id: string; type: string }[]): Map<string, string> {

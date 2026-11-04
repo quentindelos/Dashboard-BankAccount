@@ -20,6 +20,9 @@ export default function ProjectionView({
   accounts,
   initialYears,
   initialRealTerms,
+  youthCloseYear,
+  initialOverflowTo,
+  investable,
   inflation,
   hasSaved,
   unmatched,
@@ -27,6 +30,9 @@ export default function ProjectionView({
   accounts: ProjectionAccount[];
   initialYears: number;
   initialRealTerms: boolean;
+  youthCloseYear: number;
+  initialOverflowTo: string | null;
+  investable: { id: string; name: string }[];
   inflation: number;
   hasSaved: boolean;
   unmatched: { name: string; monthly: number }[];
@@ -34,6 +40,9 @@ export default function ProjectionView({
   const chrome = useChartTheme();
   const [years, setYears] = useState(initialYears);
   const [realTerms, setRealTerms] = useState(initialRealTerms);
+  const [overflowTo, setOverflowTo] = useState(initialOverflowTo ?? "");
+  const hasYouth = accounts.some((a) => a.youth);
+  const cushion = accounts.find((a) => a.cushionTarget !== undefined);
   const [inputs, setInputs] = useState(() =>
     Object.fromEntries(accounts.map((a) => [a.id, { monthly: toInput(a.monthly), rate: toInput(a.rate * 100) }]))
   );
@@ -45,10 +54,27 @@ export default function ProjectionView({
         ...a,
         monthly: Math.max(parse(inputs[a.id].monthly) ?? 0, 0),
         rate: (parse(inputs[a.id].rate) ?? 0) / 100,
+        overflowTo: a.cushionTarget !== undefined ? overflowTo || undefined : undefined,
       })),
-    [accounts, inputs]
+    [accounts, inputs, overflowTo]
   );
-  const rows = useMemo(() => project(model, years, { inflation: realTerms ? inflation : 0 }), [model, years, realTerms, inflation]);
+  const rows = useMemo(
+    () => project(model, years, { inflation: realTerms ? inflation : 0, youthCloseYear: hasYouth ? youthCloseYear : null }),
+    [model, years, realTerms, inflation, youthCloseYear, hasYouth]
+  );
+  const closeYear = youthCloseYear;
+  // First month the cushion is full (in the central scenario).
+  const cushionFull = cushion?.cushionTarget
+    ? rows.find((r) => (r[`a_${cushion.id}`] as number) >= cushion.cushionTarget! - 1)
+    : undefined;
+  const nameOf = (id?: string) => accounts.find((a) => a.id === id)?.name;
+
+  function resetRates() {
+    setInputs((prev) =>
+      Object.fromEntries(accounts.map((a) => [a.id, { ...prev[a.id], rate: toInput((a.defaultRate ?? a.rate) * 100) }]))
+    );
+    setStatus("");
+  }
   const end = rows.at(-1)!;
   const today = rows[0];
   const futureDeposits = end.paid - today.paid;
@@ -69,6 +95,7 @@ export default function ProjectionView({
       body: JSON.stringify({
         years,
         realTerms,
+        overflowTo: overflowTo || null,
         accounts: Object.fromEntries(model.map((a) => [a.id, { monthly: a.monthly, rate: a.rate }])),
       }),
     });
@@ -164,8 +191,37 @@ export default function ProjectionView({
         <p className="muted" style={{ fontSize: 13, marginTop: 0 }}>
           {hasSaved
             ? "Tes hypothèses enregistrées. Modifie-les librement, la projection se met à jour en direct."
-            : "Versements pré-remplis d'après tes virements d'épargne (page Dépenses) : vérifie-les. Rendements par défaut selon le type de compte."}
+            : "Versements pré-remplis d'après tes virements d'épargne (page Dépenses) : vérifie-les."}{" "}
+          Rendements proposés : taux actuels des livrets (Livret A / Bleu 1,7 %, Livret Jeune 3,5 %) et moyennes historiques
+          long terme des marchés pour ce que contient chaque compte. Les livrets s'arrêtent d'être alimentés à leur plafond.
         </p>
+        {cushion?.cushionTarget !== undefined && (
+          <div className="field" style={{ maxWidth: 420 }}>
+            <label htmlFor="projection-overflow">
+              Une fois le matelas ({cushion.name}) à {eur0.format(cushion.cushionTarget)}, verser son épargne sur
+            </label>
+            <select
+              id="projection-overflow"
+              value={overflowTo}
+              onChange={(e) => {
+                setOverflowTo(e.target.value);
+                setStatus("");
+              }}
+            >
+              <option value="">Nulle part (arrêter ces versements)</option>
+              {investable.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+            <span className="muted" style={{ fontSize: 12 }}>
+              {cushionFull
+                ? `Matelas atteint vers ${monthYear.format(cushionFull.t)} dans cette projection.`
+                : `Matelas pas encore atteint dans ${years} ans avec ces versements.`}
+            </span>
+          </div>
+        )}
         {unmatchedTotal > 0 && !hasSaved && (
           <p className="muted" style={{ fontSize: 13 }}>
             Non rattaché à un compte : {unmatched.map((u) => `${u.name} (${eur0.format(u.monthly)})`).join(", ")}, soit{" "}
@@ -194,6 +250,22 @@ export default function ProjectionView({
                         <span className="legend-dot" style={{ background: a.color }} />
                         {a.name}
                       </span>
+                      {a.youth && (
+                        <div className="muted" style={{ fontSize: 12 }}>
+                          Jusqu'à fin {closeYear}
+                          {nameOf(a.transferTo) ? `, puis transféré sur ${nameOf(a.transferTo)}` : ", puis au taux du Livret A"}
+                        </div>
+                      )}
+                      {a.cushionTarget !== undefined && (
+                        <div className="muted" style={{ fontSize: 12 }}>
+                          Matelas : alimenté jusqu'à {eur0.format(a.cushionTarget)}
+                        </div>
+                      )}
+                      {a.ceiling !== undefined && a.cushionTarget === undefined && (
+                        <div className="muted" style={{ fontSize: 12 }}>
+                          Plafond {eur0.format(a.ceiling)}
+                        </div>
+                      )}
                     </td>
                     <td className="num">{eur0.format(a.value)}</td>
                     <td className="num">
@@ -229,6 +301,9 @@ export default function ProjectionView({
         <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 14 }}>
           <button type="button" className="btn btn-primary" onClick={save}>
             Enregistrer mes hypothèses
+          </button>
+          <button type="button" className="btn" onClick={resetRates}>
+            Remettre les taux proposés
           </button>
           {status && <span className="muted" style={{ fontSize: 13 }}>{status}</span>}
         </div>
