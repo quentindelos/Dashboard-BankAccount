@@ -24,6 +24,7 @@ const importSchema = z.object({
         z.object({
           date: z.string().refine((v) => !Number.isNaN(Date.parse(v))),
           value: z.number().finite(),
+          invested: z.number().finite().nullable().optional(),
           note: z.string().max(500).nullable().optional(),
         })
       ),
@@ -95,8 +96,8 @@ export async function POST(request: NextRequest) {
       day.setUTCHours(0, 0, 0, 0);
       await prisma.entry.upsert({
         where: { accountId_date: { accountId: acc.id, date: day } },
-        create: { accountId: acc.id, date: day, value: entry.value, note: entry.note || null },
-        update: { value: entry.value, note: entry.note || null },
+        create: { accountId: acc.id, date: day, value: entry.value, invested: entry.invested ?? null, note: entry.note || null },
+        update: { value: entry.value, invested: entry.invested ?? null, note: entry.note || null },
       });
       entriesImported += 1;
     }

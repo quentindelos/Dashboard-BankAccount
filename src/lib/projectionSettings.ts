@@ -1,0 +1,34 @@
+import { z } from "zod";
+import { prisma } from "@/lib/db";
+
+const KEY = "projection";
+
+export const projectionSettingsSchema = z.object({
+  years: z.number().int().min(1).max(50).optional(),
+  realTerms: z.boolean().optional(),
+  accounts: z.record(
+    z.string().max(64),
+    z.object({
+      monthly: z.number().finite().min(0).max(1_000_000),
+      rate: z.number().finite().min(-0.5).max(1),
+    })
+  ),
+});
+
+export type ProjectionSettings = z.infer<typeof projectionSettingsSchema>;
+
+export async function loadProjectionSettings(): Promise<ProjectionSettings> {
+  const row = await prisma.setting.findUnique({ where: { key: KEY } });
+  try {
+    const parsed = projectionSettingsSchema.safeParse(JSON.parse(row?.value ?? ""));
+    if (parsed.success) return parsed.data;
+  } catch {
+    // no saved assumptions yet
+  }
+  return { accounts: {} };
+}
+
+export async function saveProjectionSettings(value: ProjectionSettings): Promise<void> {
+  const json = JSON.stringify(value);
+  await prisma.setting.upsert({ where: { key: KEY }, create: { key: KEY, value: json }, update: { value: json } });
+}

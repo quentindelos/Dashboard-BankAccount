@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
         await tx.entry.deleteMany({ where: { accountId } });
         await tx.position.deleteMany({ where: { accountId } });
         await tx.entry.createMany({
-          data: acc.entries.map((e) => ({ accountId, date: utcDay(e.date), value: e.value, note: "Import Trade Republic" })),
+          data: acc.entries.map((e) => ({ accountId, date: utcDay(e.date), value: e.value, invested: e.invested, note: "Import Trade Republic" })),
         });
         await tx.position.createMany({
           data: acc.snapshots.flatMap((s) => s.positions.map((p) => ({ accountId, date: utcDay(s.date), ...p }))),

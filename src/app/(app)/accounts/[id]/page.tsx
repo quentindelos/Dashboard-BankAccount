@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import AccountDetail from "@/components/AccountDetail";
 import { findInstrument } from "@/lib/instruments";
 import { institutionLogo, instrumentLogo } from "@/lib/logos";
+import { investedSeries } from "@/lib/invested";
 
 export default async function AccountPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -14,6 +15,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
     },
   });
   if (!account) notFound();
+  const invested = investedSeries(account.entries, account.positions);
 
   return (
     <AccountDetail
@@ -26,7 +28,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
         logo: institutionLogo(account.institution),
         contributions: account.contributions,
       }}
-      entries={account.entries.map((e) => ({ id: e.id, date: e.date.toISOString(), value: e.value, note: e.note }))}
+      entries={account.entries.map((e, i) => ({ id: e.id, date: e.date.toISOString(), value: e.value, invested: invested?.[i] ?? null, note: e.note }))}
       positions={account.positions.map((p) => ({
         date: p.date.toISOString(),
         name: p.name,

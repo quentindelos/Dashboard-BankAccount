@@ -58,6 +58,7 @@ model Entry {
   account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
   date      DateTime // the valuation date (day granularity)
   value     Float // balance / valuation in EUR at that date
+  invested  Float? // money put in and still held at that date (cost basis), when known: period gain = Δvalue − Δinvested
   note      String?
   createdAt DateTime @default(now())
 

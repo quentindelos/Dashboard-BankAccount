@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { accountTypeLabel, isTradeRepublic } from "@/lib/accountTypes";
-import TimeSeriesChart, { RangeTabs, extendToToday, sliceRange, type RangeKey } from "@/components/TimeSeriesChart";
+import TimeSeriesChart, { RangeTabs, extendToToday, periodChange, sliceRange, type RangeKey } from "@/components/TimeSeriesChart";
 import { Delta, eur0, formatPct, signed } from "@/components/ui";
 import Logo from "@/components/Logo";
 import type { LogoKey } from "@/lib/logos";
@@ -13,6 +13,7 @@ interface EntryRow {
   id: string;
   date: string;
   value: number;
+  invested: number | null;
   note: string | null;
 }
 
@@ -137,10 +138,20 @@ export default function AccountDetail({
     }
   }
 
+  // Amount invested known every day (Trade Republic import): the period
+  // change then excludes deposits and shows the gain itself.
+  const investedKnown = entries.length > 0 && entries.every((en) => en.invested !== null);
   const chartRows = sliceRange(
-    extendToToday(entries.map((en) => ({ t: Date.parse(en.date.slice(0, 10)), total: en.value }))),
+    extendToToday(
+      entries.map((en) => ({
+        t: Date.parse(en.date.slice(0, 10)),
+        total: en.value,
+        ...(investedKnown ? { invested: en.invested ?? 0 } : {}),
+      }))
+    ),
     range
   );
+  const period = range === "TOUT" ? null : periodChange(chartRows, ["total"], investedKnown ? ["invested"] : []);
   const latestValue = entries.at(-1)?.value ?? 0;
   const managed = isTradeRepublic(account.institution);
   const positionsCost = positionsForDate.every((p) => p.costBasis !== null)
@@ -162,10 +173,13 @@ export default function AccountDetail({
           {account.name}
         </h1>
         <div className="hero-value" style={{ fontSize: 34 }}>{eur0.format(latestValue)}</div>
-        {positionsCost !== null && positionsForDate.length > 0 && (
+        {period && (
+          <Delta value={period.change} pct={period.pct} />
+        )}
+        {!period && positionsCost !== null && positionsForDate.length > 0 && (
           <Delta value={positionsTotal - positionsCost} pct={positionsCost ? (positionsTotal - positionsCost) / positionsCost : null} suffix="de plus-value latente" />
         )}
-        {positions.length === 0 && contributions !== null && (
+        {!period && positions.length === 0 && contributions !== null && (
           <Delta
             value={latestValue - contributions}
             pct={contributions ? (latestValue - contributions) / contributions : null}
@@ -174,14 +188,8 @@ export default function AccountDetail({
         )}
         <div className="chart-toolbar">
           <span className="muted" style={{ fontSize: 13 }}>
-            {managed ? (
-              entries.length > 0 ? `Valeur quotidienne · à jour au ${dateFmt.format(new Date(entries.at(-1)!.date))}` : "Aucun historique importé"
-            ) : (
-              <>
-                {entries.length} relevé{entries.length > 1 ? "s" : ""}
-                {account.type !== "LIVRET" && entries.length > 1 ? " · ligne droite entre deux relevés" : ""}
-              </>
-            )}
+            {managed &&
+              (entries.length > 0 ? `Valeur quotidienne · à jour au ${dateFmt.format(new Date(entries.at(-1)!.date))}` : "Aucun historique importé")}
           </span>
           <RangeTabs value={range} onChange={setRange} />
         </div>

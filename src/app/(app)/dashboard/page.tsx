@@ -33,6 +33,7 @@ export default async function DashboardPage() {
   const rows = data.series.map((p) => {
     const row: { t: number; total: number; [k: string]: number } = { t: Date.parse(p.date), total: p.total };
     for (const a of data.accounts) row[`a_${a.id}`] = p.byAccount[a.id] ?? 0;
+    for (const [id, byDate] of Object.entries(data.investedAt)) row[`i_${id}`] = byDate[p.date] ?? 0;
     return row;
   });
 
@@ -70,6 +71,7 @@ export default async function DashboardPage() {
     <SynthesisView
       rows={rows}
       accountSeries={accountSeries}
+      investedAccounts={data.accounts.filter((a) => a.id in data.investedAt).map((a) => ({ id: a.id, name: a.name }))}
       total={data.total}
       accounts={accounts}
       gains={computeGains(data)}

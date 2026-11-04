@@ -47,7 +47,7 @@ export async function GET() {
       archived: a.archived,
       emergencyFund: a.emergencyFund,
       contributions: a.contributions,
-      entries: a.entries.map((e) => ({ date: e.date.toISOString(), value: e.value, note: e.note })),
+      entries: a.entries.map((e) => ({ date: e.date.toISOString(), value: e.value, invested: e.invested, note: e.note })),
       positions: a.positions.map((p) => ({
         date: p.date.toISOString(),
         name: p.name,

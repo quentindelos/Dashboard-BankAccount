@@ -44,11 +44,20 @@ const depensesIcon = (
   </svg>
 );
 
+const projectionIcon = (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M3 20h18" />
+    <path d="M4 16l5-5 4 3 7-8" />
+    <path d="M15 6h5v5" />
+  </svg>
+);
+
 const links = [
   { href: "/dashboard", label: "Synthèse", icon: icons.synthese },
   { href: "/accounts", label: "Comptes", icon: icons.comptes },
   { href: "/expenses", label: "Dépenses", icon: depensesIcon },
   { href: "/analysis", label: "Analyse", icon: icons.analyse },
+  { href: "/projection", label: "Projection", icon: projectionIcon },
   { href: "/settings", label: "Réglages", icon: icons.reglages },
 ];
 

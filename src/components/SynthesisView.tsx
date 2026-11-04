@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import TimeSeriesChart, { RangeTabs, extendToToday, sliceRange, type RangeKey, type TimeRow } from "@/components/TimeSeriesChart";
+import TimeSeriesChart, { RangeTabs, extendToToday, periodChange, sliceRange, type RangeKey, type TimeRow } from "@/components/TimeSeriesChart";
 import { accountTypeCssVar, accountTypeLabel, accountTypeShort } from "@/lib/accountTypes";
 import type { Advice, Cushion, Slice } from "@/lib/analysis";
 import type { LogoKey } from "@/lib/logos";
@@ -26,6 +26,7 @@ interface PositionCard {
 export default function SynthesisView({
   rows,
   accountSeries,
+  investedAccounts,
   total,
   accounts,
   gains,
@@ -39,6 +40,8 @@ export default function SynthesisView({
 }: {
   rows: TimeRow[];
   accountSeries: { key: string; label: string; color: string }[];
+  /** Accounts whose invested amount is known day by day. */
+  investedAccounts: { id: string; name: string }[];
   total: number;
   accounts: { id: string; name: string; type: string; institution: string | null; logo: LogoKey | null; value: number }[];
   gains: GainSummary;
@@ -57,6 +60,18 @@ export default function SynthesisView({
 
   const stack = accountSeries;
 
+  // Over a chosen period: gain of the accounts whose deposits are known
+  // (deposits excluded), and the raw change of the whole net worth.
+  const netChange = range === "TOUT" ? null : periodChange(visible);
+  const investedGain =
+    range === "TOUT" || investedAccounts.length === 0
+      ? null
+      : periodChange(
+          visible,
+          investedAccounts.map((a) => `a_${a.id}`),
+          investedAccounts.map((a) => `i_${a.id}`)
+        );
+
   const cushionPct = cushion.target ? Math.min(cushion.amount / cushion.target, 1) : null;
 
   return (
@@ -65,12 +80,18 @@ export default function SynthesisView({
         {/* ---- Net worth hero ---- */}
         <section className="card hero">
           <div className="hero-value">{eur0.format(total)}</div>
-          {gains.invested > 0 ? (
+          {netChange ? (
+            investedGain ? (
+              <Delta value={investedGain.change} pct={investedGain.pct} />
+            ) : (
+              <Delta value={netChange.change} pct={netChange.pct} />
+            )
+          ) : gains.invested > 0 ? (
             <Delta value={gains.gain} pct={gains.pct} suffix={`de ${gains.gain >= 0 ? "plus" : "moins"}-value sur ${eur0.format(gains.invested)} investis`} />
           ) : (
             <span className="muted" style={{ fontSize: 13 }}>Indique tes versements pour voir ta plus-value</span>
           )}
-          {gains.missing.length > 0 && (
+          {!netChange && gains.missing.length > 0 && (
             <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
               Sans {gains.missing.map((m, i) => (
                 <span key={m.id}>

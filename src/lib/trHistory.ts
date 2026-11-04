@@ -31,7 +31,9 @@ export interface TrPosition {
 
 export interface TrAccountHistory {
   bucket: TrBucket;
-  entries: { date: string; value: number }[];
+  /** invested: money put in so far, net of sale proceeds (plus uninvested cash
+   * in the PEA), so value − invested is the gain, realized or not. */
+  entries: { date: string; value: number; invested: number }[];
   /** Month-end snapshots plus the latest day. */
   snapshots: { date: string; positions: TrPosition[] }[];
 }
@@ -261,6 +263,7 @@ export async function buildTrHistory(rows: SheetRow[], today = new Date()): Prom
     const start = [own[0].day, ...cashFlows.map((c) => c.day)].sort()[0];
     const holdings = new Map<string, Holding>();
     let cash = 0;
+    let netFlow = 0; // purchases (fees included) minus sale proceeds
     let ti = 0;
     let ci = 0;
     const entries: TrAccountHistory["entries"] = [];
@@ -276,9 +279,11 @@ export async function buildTrHistory(rows: SheetRow[], today = new Date()): Prom
         if (t.type === "BUY") {
           // PRU as shown by Trade Republic: fees included in the PEA, not in the CTO.
           h.cost += -t.amount + (bucket === "PEA" ? -t.fee : 0);
+          netFlow += -t.amount - t.fee;
           h.qty += t.qty;
         } else if (t.qty < 0) {
           const sold = Math.min(-t.qty, h.qty);
+          netFlow -= t.amount + t.fee;
           if (h.qty > 0) h.cost -= (h.cost * sold) / h.qty;
           h.qty -= sold;
         } else {
@@ -292,6 +297,7 @@ export async function buildTrHistory(rows: SheetRow[], today = new Date()): Prom
       }
 
       let value = bucket === "PEA" ? cash : 0;
+      const invested = value + netFlow;
       const positions: TrPosition[] = [];
       for (const [symbol, h] of holdings) {
         if (h.qty <= 0) continue;
@@ -306,7 +312,7 @@ export async function buildTrHistory(rows: SheetRow[], today = new Date()): Prom
           costBasis: h.qty > 0 && h.cost > 0 ? Number((h.cost / h.qty).toFixed(4)) : null,
         });
       }
-      entries.push({ date: day, value: Number(value.toFixed(2)) });
+      entries.push({ date: day, value: Number(value.toFixed(2)), invested: Number(invested.toFixed(2)) });
 
       const next = new Date(`${day}T00:00:00Z`);
       next.setUTCDate(next.getUTCDate() + 1);

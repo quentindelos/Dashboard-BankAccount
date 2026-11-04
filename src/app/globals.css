@@ -736,10 +736,10 @@ h3 {
 }
 .advice.ok .advice-icon {
   background: color-mix(in srgb, var(--good) 16%, transparent);
-  color: var(--good);
+  color: var(--success);
 }
 .advice.ok .advice-tag {
-  color: var(--good);
+  color: var(--success);
 }
 
 /* ---------- Risk meter ---------- */
@@ -1420,4 +1420,60 @@ tbody tr:last-child td {
   color: var(--text-primary);
   text-decoration: none;
   opacity: 0.8;
+}
+
+/* ---- Projection ---- */
+.projection-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 16px 0 4px;
+}
+
+.projection-kpis > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.projection-kpis .label {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.projection-kpis .num {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.projection-kpis .num.pos {
+  color: var(--success);
+}
+
+.projection-kpis .num.neg {
+  color: var(--critical);
+}
+
+.projection-input {
+  width: 80px;
+  text-align: right;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  font: inherit;
+  color: inherit;
+}
+
+.projection-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.legend-dash {
+  display: inline-block;
+  width: 14px;
+  border-top: 2px dashed;
 }

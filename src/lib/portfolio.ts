@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { buildNetWorthSeries, type NetWorthPoint } from "@/lib/networth";
+import { investedSeries } from "@/lib/invested";
 
 export interface HoldingRow {
   accountId: string;
@@ -30,6 +31,9 @@ export interface PortfolioData {
   /** Latest position snapshot of every account that has one. */
   holdings: HoldingRow[];
   otherAssets: OtherAssetRow[];
+  /** Amount invested per account at each series date, for the accounts that
+   * record it daily (Trade Republic import). accountId -> date -> amount. */
+  investedAt: Record<string, Record<string, number>>;
 }
 
 export async function loadPortfolio(): Promise<PortfolioData> {
@@ -44,6 +48,21 @@ export async function loadPortfolio(): Promise<PortfolioData> {
     accounts.flatMap((a) => a.entries.map((e) => ({ accountId: a.id, date: e.date, value: e.value })))
   );
   const latest = series.at(-1);
+
+  const investedAt: PortfolioData["investedAt"] = {};
+  for (const a of accounts) {
+    const sorted = [...a.entries].sort((x, y) => x.date.getTime() - y.date.getTime());
+    const invested = investedSeries(sorted, a.positions);
+    if (!invested || invested.some((v) => v === null)) continue;
+    const list = sorted.map((e, i) => ({ day: e.date.toISOString().slice(0, 10), invested: invested[i] ?? 0 }));
+    const byDate: Record<string, number> = {};
+    let i = -1;
+    for (const p of series) {
+      while (i + 1 < list.length && list[i + 1].day <= p.date) i += 1;
+      byDate[p.date] = i >= 0 ? list[i].invested : 0;
+    }
+    investedAt[a.id] = byDate;
+  }
 
   const holdings: HoldingRow[] = [];
   const otherAssets: OtherAssetRow[] = [];
@@ -81,5 +100,6 @@ export async function loadPortfolio(): Promise<PortfolioData> {
     total: latest?.total ?? 0,
     holdings,
     otherAssets,
+    investedAt,
   };
 }

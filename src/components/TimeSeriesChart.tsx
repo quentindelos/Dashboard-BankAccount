@@ -20,7 +20,7 @@ export const RANGES: RangeKey[] = ["1M", "3M", "6M", "YTD", "1A", "TOUT"];
 
 const eur0 = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 const eur2 = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });
-const compact = new Intl.NumberFormat("fr-FR", { notation: "compact", maximumFractionDigits: 1 });
+const compact = new Intl.NumberFormat("fr-FR", { notation: "compact", maximumFractionDigits: 2 });
 const longDate = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 const shortDay = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" });
 const monthYear = new Intl.DateTimeFormat("fr-FR", { month: "short", year: "2-digit" });
@@ -45,6 +45,25 @@ export function sliceRange(rows: TimeRow[], range: RangeKey, now = Date.now()): 
   return [{ ...before, t: start }, ...inside];
 }
 
+/** Change between the first and last visible rows. When the amount invested
+ * is known at both ends (investedKey), money paid in or taken out over the
+ * period is removed, leaving only the gain or loss. */
+export function periodChange(
+  rows: TimeRow[],
+  valueKeys: string[] = ["total"],
+  investedKeys: string[] = []
+): { change: number; pct: number | null } | null {
+  const first = rows[0];
+  const last = rows.at(-1);
+  if (!first || !last || first === last) return null;
+  const sum = (row: TimeRow, keys: string[]) => keys.reduce((s, k) => s + (row[k] ?? 0), 0);
+  const start = sum(first, valueKeys);
+  const flows = sum(last, investedKeys) - sum(first, investedKeys);
+  const change = sum(last, valueKeys) - start - flows;
+  const base = start + Math.max(flows, 0);
+  return { change, pct: base > 0 ? change / base : null };
+}
+
 /** Extends the series to "today" so a flat end isn't mistaken for missing data. */
 export function extendToToday(rows: TimeRow[], now = Date.now()): TimeRow[] {
   const last = rows.at(-1);
@@ -52,6 +71,30 @@ export function extendToToday(rows: TimeRow[], now = Date.now()): TimeRow[] {
   const today = new Date(now);
   today.setUTCHours(0, 0, 0, 0);
   return today.getTime() > last.t ? [...rows, { ...last, t: today.getTime() }] : rows;
+}
+
+/** Rounds a raw step to 1, 2, 2.5 or 5 × 10^n so ticks land on round values. */
+function niceStep(raw: number): number {
+  const pow = 10 ** Math.floor(Math.log10(raw));
+  const f = raw / pow;
+  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * pow;
+}
+
+/** Y axis fitted to the visible values (not anchored at 0), so variations
+ * over the selected period stay readable. */
+function valueAxis(values: number[]): { domain: [number, number]; ticks: number[] } {
+  let lo = Math.min(...values);
+  let hi = Math.max(...values);
+  const pad = hi > lo ? (hi - lo) * 0.1 : Math.max(Math.abs(hi) * 0.05, 1);
+  lo -= pad;
+  hi += pad;
+  if (Math.min(...values) >= 0) lo = Math.max(0, lo);
+  const step = niceStep((hi - lo) / 4);
+  const start = Math.floor(lo / step) * step;
+  const end = Math.ceil(hi / step) * step;
+  const ticks: number[] = [];
+  for (let v = start; v <= end + step / 2; v += step) ticks.push(Math.round(v * 100) / 100);
+  return { domain: [start, end], ticks };
 }
 
 function evenTicks(min: number, max: number, count = 5): number[] {
@@ -85,6 +128,8 @@ export default function TimeSeriesChart({
   const max = rows[rows.length - 1].t;
   const spanDays = (max - min) / DAY;
   const tickFmt = (t: number) => (spanDays <= 120 ? shortDay.format(t) : monthYear.format(t));
+  const keys = stack ? stack.map((s) => s.key) : ["total"];
+  const yAxis = valueAxis(rows.flatMap((r) => keys.map((k) => r[k] ?? 0)));
 
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -117,8 +162,10 @@ export default function TimeSeriesChart({
           tickLine={false}
           tick={{ fill: chrome.textMuted, fontSize: 12 }}
           tickFormatter={(v: number) => `${compact.format(v)} €`}
-          width={58}
-          domain={[0, "auto"]}
+          width={64}
+          domain={yAxis.domain}
+          ticks={yAxis.ticks}
+          allowDataOverflow
         />
         <Tooltip
           cursor={{ stroke: chrome.baseline, strokeWidth: 1 }}
@@ -148,8 +195,8 @@ export default function TimeSeriesChart({
           }}
         />
         {stack ? (
-          // One independent line per series, each starting from 0 (not stacked:
-          // stacking made the top series look like the biggest one).
+          // One independent line per series (not stacked: stacking made the
+          // top series look like the biggest one).
           stack.map((s) => (
             <Area
               key={s.key}
