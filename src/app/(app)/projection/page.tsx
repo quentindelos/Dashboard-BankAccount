@@ -2,7 +2,8 @@ import { prisma } from "@/lib/db";
 import { loadPortfolio } from "@/lib/portfolio";
 import { accountColors } from "@/lib/accountTypes";
 import { findInstrument } from "@/lib/instruments";
-import { isSavings, monthlyEquivalent } from "@/lib/expenses";
+import { isIncome, isSavings, monthlyEquivalent } from "@/lib/expenses";
+import type { CareerIncome, CareerSettings } from "@/lib/career";
 import {
   CEILINGS,
   DEFAULT_INFLATION,
@@ -47,6 +48,28 @@ export default async function ProjectionPage() {
   const latest = data.series.at(-1);
   const colors = accountColors(data.accounts);
   const savings = expenses.filter(isSavings);
+  const incomes: CareerIncome[] = expenses
+    .filter(isIncome)
+    .map((e) => ({ id: e.id, name: e.name, category: e.category, monthly: monthlyEquivalent(e) }));
+
+  // After the degree: CDI at Thales from October 2027. The new salary replaces
+  // the current one, and means-tested benefits (APL, prime d'activité) stop.
+  const careerDefaults: CareerSettings = {
+    start: "2027-10",
+    gross: 42_000,
+    raise: 0.035,
+    share: 0.5,
+    to: defaultOverflow ?? investable[0]?.id ?? "",
+    stops: incomes.filter((i) => i.category === "AIDES").map((i) => i.id),
+  };
+  const savedCareer = saved.career ?? null;
+  const career: CareerSettings = savedCareer
+    ? {
+        ...savedCareer,
+        to: investable.some((a) => a.id === savedCareer.to) ? savedCareer.to : careerDefaults.to,
+        stops: savedCareer.stops.filter((id) => incomes.some((i) => i.id === id)),
+      }
+    : careerDefaults;
 
   // Guess where each savings transfer goes: its linked account, else an
   // account whose name or one of whose holdings matches the transfer's name.
@@ -117,13 +140,14 @@ export default async function ProjectionPage() {
     <ProjectionView
       accounts={accounts}
       initialYears={saved.years ?? 10}
-      initialRealTerms={saved.realTerms ?? true}
       youthCloseYear={YOUTH_CLOSE_YEAR}
       initialOverflowTo={overflowTo}
       investable={investable.map((a) => ({ id: a.id, name: a.name }))}
       inflation={DEFAULT_INFLATION}
       hasSaved={Object.keys(saved.accounts).length > 0}
       unmatched={unmatched}
+      incomes={incomes}
+      initialCareer={career}
     />
   );
 }

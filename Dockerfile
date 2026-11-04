@@ -25,7 +25,8 @@ COPY . .
 # pages at build time. Real secrets are provided at container runtime.
 ENV SESSION_SECRET="build-time-placeholder-not-used-at-runtime-00000000"
 ENV DATABASE_URL="file:./build-placeholder.db"
-RUN npm run build
+# public/ may be empty (not tracked by git), but the runner stage copies it.
+RUN mkdir -p public && npm run build
 
 # ---- runner: production-only image ---------------------------------------
 FROM base AS runner

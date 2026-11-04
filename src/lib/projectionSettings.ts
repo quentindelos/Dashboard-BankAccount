@@ -7,6 +7,17 @@ export const projectionSettingsSchema = z.object({
   years: z.number().int().min(1).max(50).optional(),
   realTerms: z.boolean().optional(),
   overflowTo: z.string().max(64).nullable().optional(),
+  career: z
+    .object({
+      start: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/),
+      gross: z.number().finite().min(0).max(1_000_000),
+      raise: z.number().finite().min(-0.2).max(0.5),
+      share: z.number().finite().min(0).max(1),
+      to: z.string().max(64),
+      stops: z.array(z.string().max(64)).max(50),
+    })
+    .nullable()
+    .optional(),
   accounts: z.record(
     z.string().max(64),
     z.object({

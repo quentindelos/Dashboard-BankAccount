@@ -112,12 +112,27 @@ interface SimState {
   paid: number;
 }
 
+/** Extra monthly deposit from a new job: `amount(m)` euros on account `to`,
+ * `m` months after it starts on month `start` of the simulation. */
+export interface ProjectionCareer {
+  from: Date;
+  to: string;
+  amount: (m: number) => number;
+}
+
+interface SimOptions {
+  inflation: number;
+  closeAfter: number | null;
+  career?: { start: number; to: string; amount: (m: number) => number };
+  onMonth?: (k: number, s: SimState) => void;
+}
+
 /** Runs the accounts for `months` months, the yearly return of each shifted by shift(account). */
 function simulate(
   accounts: ProjectionAccount[],
   months: number,
   shift: (a: ProjectionAccount) => number,
-  { inflation, closeAfter, onMonth }: { inflation: number; closeAfter: number | null; onMonth?: (k: number, s: SimState) => void }
+  { inflation, closeAfter, career, onMonth }: SimOptions
 ): SimState {
   const index = new Map(accounts.map((a, i) => [a.id, i]));
   const growth = accounts.map((a) => Math.pow(1 + Math.max(a.rate + shift(a), -0.99), 1 / 12));
@@ -161,6 +176,11 @@ function simulate(
       const j = a.cushionTarget !== undefined && a.overflowTo ? index.get(a.overflowTo) : undefined;
       if (j !== undefined) extra[j] += a.monthly - deposit;
     });
+    // New job: part of the raise invested on top of the current deposits.
+    if (career && k > career.start) {
+      const j = index.get(career.to);
+      if (j !== undefined) extra[j] += career.amount(k - career.start - 1);
+    }
     // Money no longer needed by a full cushion, invested elsewhere.
     accounts.forEach((a, i) => {
       if (!extra[i] || !open[i]) return;
@@ -178,12 +198,26 @@ function simulate(
 export function project(
   accounts: ProjectionAccount[],
   years: number,
-  { inflation = 0, youthCloseYear = null, start = new Date() }: { inflation?: number; youthCloseYear?: number | null; start?: Date } = {}
+  {
+    inflation = 0,
+    youthCloseYear = null,
+    start = new Date(),
+    career,
+  }: { inflation?: number; youthCloseYear?: number | null; start?: Date; career?: ProjectionCareer } = {}
 ): ProjectionRow[] {
   const totalMonths = years * 12;
   const step = years <= 10 ? 1 : 3;
   const closeAfter = youthCloseYear !== null ? youthCloseMonths(youthCloseYear, start) : null;
-  const opts = { inflation, closeAfter };
+  // Month k of the simulation is the month after start + k - 1; the first
+  // payslip of the new job lands in its first month.
+  const careerStart = career
+    ? (career.from.getUTCFullYear() - start.getUTCFullYear()) * 12 + career.from.getUTCMonth() - start.getUTCMonth()
+    : 0;
+  const opts: SimOptions = {
+    inflation,
+    closeAfter,
+    career: career ? { start: Math.max(careerStart, 0), to: career.to, amount: career.amount } : undefined,
+  };
   const rows: ProjectionRow[] = [];
 
   simulate(accounts, totalMonths, () => 0, {

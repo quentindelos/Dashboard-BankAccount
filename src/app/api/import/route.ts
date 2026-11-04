@@ -45,6 +45,18 @@ const importSchema = z.object({
   ),
 });
 
+const utcDay = (v: string) => {
+  const day = new Date(v);
+  day.setUTCHours(0, 0, 0, 0);
+  return day;
+};
+
+function chunks<T>(items: T[], size = 400): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
 // Import is a MERGE, never a wipe: accounts are upserted by their original
 // id, entries are upserted by (account, date), and positions are upserted
 // by (account, date, name). Nothing existing is deleted. This is the safe
@@ -62,93 +74,100 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let accountsImported = 0;
+  const { accounts, expenses, settings } = parsed.data;
   let entriesImported = 0;
   let positionsImported = 0;
+  let latest = 0;
 
-  for (const acc of parsed.data.accounts) {
-    await prisma.account.upsert({
-      where: { id: acc.id },
-      create: {
-        id: acc.id,
-        name: acc.name,
-        type: acc.type,
-        institution: acc.institution || null,
-        note: acc.note || null,
-        archived: acc.archived ?? false,
-        emergencyFund: acc.emergencyFund ?? false,
-        contributions: acc.contributions ?? null,
-      },
-      update: {
-        name: acc.name,
-        type: acc.type,
-        institution: acc.institution || null,
-        note: acc.note || null,
-        archived: acc.archived ?? false,
-        emergencyFund: acc.emergencyFund ?? false,
-        ...(acc.contributions !== undefined && { contributions: acc.contributions }),
-      },
-    });
-    accountsImported += 1;
+  // Everything in one transaction: on a Raspberry Pi's SD card, thousands of
+  // separate writes (one per daily statement) take minutes; one commit takes
+  // seconds. Same merge semantics as before: rows with the same key are
+  // replaced, nothing else is deleted.
+  await prisma.$transaction(
+    async (tx) => {
+      for (const acc of accounts) {
+        const fields = {
+          name: acc.name,
+          type: acc.type,
+          institution: acc.institution || null,
+          note: acc.note || null,
+          archived: acc.archived ?? false,
+          emergencyFund: acc.emergencyFund ?? false,
+        };
+        await tx.account.upsert({
+          where: { id: acc.id },
+          create: { id: acc.id, ...fields, contributions: acc.contributions ?? null },
+          update: { ...fields, ...(acc.contributions !== undefined && { contributions: acc.contributions }) },
+        });
 
-    for (const entry of acc.entries) {
-      const day = new Date(entry.date);
-      day.setUTCHours(0, 0, 0, 0);
-      await prisma.entry.upsert({
-        where: { accountId_date: { accountId: acc.id, date: day } },
-        create: { accountId: acc.id, date: day, value: entry.value, invested: entry.invested ?? null, note: entry.note || null },
-        update: { value: entry.value, invested: entry.invested ?? null, note: entry.note || null },
-      });
-      entriesImported += 1;
-    }
-
-    for (const position of acc.positions) {
-      const day = new Date(position.date);
-      day.setUTCHours(0, 0, 0, 0);
-      await prisma.position.upsert({
-        where: { accountId_date_name: { accountId: acc.id, date: day, name: position.name } },
-        create: {
+        // Entries: one per (account, day), the last one in the file wins.
+        const byDay = new Map<number, (typeof acc.entries)[number]>();
+        for (const entry of acc.entries) byDay.set(utcDay(entry.date).getTime(), entry);
+        const days = [...byDay.keys()];
+        for (const part of chunks(days)) {
+          await tx.entry.deleteMany({ where: { accountId: acc.id, date: { in: part.map((t) => new Date(t)) } } });
+        }
+        const entryRows = [...byDay].map(([t, e]) => ({
           accountId: acc.id,
-          date: day,
-          name: position.name,
-          isin: position.isin || null,
-          quantity: position.quantity,
-          price: position.price,
-          value: position.value,
-          costBasis: position.costBasis ?? null,
-        },
-        update: {
-          isin: position.isin || null,
-          quantity: position.quantity,
-          price: position.price,
-          value: position.value,
-          costBasis: position.costBasis ?? null,
-        },
-      });
-      positionsImported += 1;
-    }
-  }
+          date: new Date(t),
+          value: e.value,
+          invested: e.invested ?? null,
+          note: e.note || null,
+        }));
+        for (const part of chunks(entryRows)) await tx.entry.createMany({ data: part });
+        entriesImported += entryRows.length;
+        if (days.length > 0) latest = Math.max(latest, ...days);
 
-  const knownAccounts = new Set((await prisma.account.findMany({ select: { id: true } })).map((a) => a.id));
-  for (const { id, ...expense } of parsed.data.expenses) {
-    const data = {
-      ...expense,
-      note: expense.note || null,
-      active: expense.active ?? true,
-      accountId: expense.accountId && knownAccounts.has(expense.accountId) ? expense.accountId : null,
-    };
-    await prisma.recurringExpense.upsert({ where: { id }, create: { id, ...data }, update: data });
-  }
-  for (const [key, value] of Object.entries(parsed.data.settings)) {
-    if (key !== "cushionMonths") continue; // only known keys
-    await prisma.setting.upsert({ where: { key }, create: { key, value }, update: { value } });
-  }
+        // Positions: one per (account, day, name).
+        const byKey = new Map<string, { t: number; p: (typeof acc.positions)[number] }>();
+        for (const p of acc.positions) {
+          const t = utcDay(p.date).getTime();
+          byKey.set(`${t}|${p.name}`, { t, p });
+        }
+        const namesByDay = new Map<number, string[]>();
+        for (const { t, p } of byKey.values()) namesByDay.set(t, [...(namesByDay.get(t) ?? []), p.name]);
+        for (const [t, names] of namesByDay) {
+          await tx.position.deleteMany({ where: { accountId: acc.id, date: new Date(t), name: { in: names } } });
+        }
+        const positionRows = [...byKey.values()].map(({ t, p }) => ({
+          accountId: acc.id,
+          date: new Date(t),
+          name: p.name,
+          isin: p.isin || null,
+          quantity: p.quantity,
+          price: p.price,
+          value: p.value,
+          costBasis: p.costBasis ?? null,
+        }));
+        for (const part of chunks(positionRows)) await tx.position.createMany({ data: part });
+        positionsImported += positionRows.length;
+      }
 
+      const knownAccounts = new Set((await tx.account.findMany({ select: { id: true } })).map((a) => a.id));
+      for (const { id, ...expense } of expenses) {
+        const data = {
+          ...expense,
+          note: expense.note || null,
+          active: expense.active ?? true,
+          accountId: expense.accountId && knownAccounts.has(expense.accountId) ? expense.accountId : null,
+        };
+        await tx.recurringExpense.upsert({ where: { id }, create: { id, ...data }, update: data });
+      }
+      for (const [key, value] of Object.entries(settings)) {
+        if (key !== "cushionMonths") continue; // only known keys
+        await tx.setting.upsert({ where: { key }, create: { key, value }, update: { value } });
+      }
+    },
+    { timeout: 120000, maxWait: 10000 },
+  );
+
+  const accountsImported = accounts.length;
   return NextResponse.json({
     success: true,
     accountsImported,
     entriesImported,
     positionsImported,
-    expensesImported: parsed.data.expenses.length,
+    expensesImported: expenses.length,
+    latestDate: latest ? new Date(latest).toISOString().slice(0, 10) : null,
   });
 }
