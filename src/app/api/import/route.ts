@@ -2,11 +2,14 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
-import { accountTypeValues } from "@/lib/validation";
+import { accountTypeValues, expenseSchema } from "@/lib/validation";
 
 const importSchema = z.object({
   // v1 exports have no `positions` field — accepted for backward compatibility.
   exportFormatVersion: z.union([z.literal(1), z.literal(2)]),
+  // Optional: older exports have no expenses/settings.
+  expenses: z.array(expenseSchema.extend({ id: z.string().min(1) })).default([]),
+  settings: z.record(z.string(), z.string()).default({}),
   accounts: z.array(
     z.object({
       id: z.string().min(1),
@@ -15,6 +18,8 @@ const importSchema = z.object({
       institution: z.string().max(100).nullable().optional(),
       note: z.string().max(500).nullable().optional(),
       archived: z.boolean().optional(),
+      emergencyFund: z.boolean().optional(),
+      contributions: z.number().finite().nullable().optional(),
       entries: z.array(
         z.object({
           date: z.string().refine((v) => !Number.isNaN(Date.parse(v))),
@@ -31,6 +36,7 @@ const importSchema = z.object({
             quantity: z.number().finite(),
             price: z.number().finite(),
             value: z.number().finite(),
+            costBasis: z.number().finite().nullable().optional(),
           })
         )
         .default([]),
@@ -69,6 +75,8 @@ export async function POST(request: NextRequest) {
         institution: acc.institution || null,
         note: acc.note || null,
         archived: acc.archived ?? false,
+        emergencyFund: acc.emergencyFund ?? false,
+        contributions: acc.contributions ?? null,
       },
       update: {
         name: acc.name,
@@ -76,6 +84,8 @@ export async function POST(request: NextRequest) {
         institution: acc.institution || null,
         note: acc.note || null,
         archived: acc.archived ?? false,
+        emergencyFund: acc.emergencyFund ?? false,
+        ...(acc.contributions !== undefined && { contributions: acc.contributions }),
       },
     });
     accountsImported += 1;
@@ -104,17 +114,40 @@ export async function POST(request: NextRequest) {
           quantity: position.quantity,
           price: position.price,
           value: position.value,
+          costBasis: position.costBasis ?? null,
         },
         update: {
           isin: position.isin || null,
           quantity: position.quantity,
           price: position.price,
           value: position.value,
+          costBasis: position.costBasis ?? null,
         },
       });
       positionsImported += 1;
     }
   }
 
-  return NextResponse.json({ success: true, accountsImported, entriesImported, positionsImported });
+  const knownAccounts = new Set((await prisma.account.findMany({ select: { id: true } })).map((a) => a.id));
+  for (const { id, ...expense } of parsed.data.expenses) {
+    const data = {
+      ...expense,
+      note: expense.note || null,
+      active: expense.active ?? true,
+      accountId: expense.accountId && knownAccounts.has(expense.accountId) ? expense.accountId : null,
+    };
+    await prisma.recurringExpense.upsert({ where: { id }, create: { id, ...data }, update: data });
+  }
+  for (const [key, value] of Object.entries(parsed.data.settings)) {
+    if (key !== "cushionMonths") continue; // only known keys
+    await prisma.setting.upsert({ where: { key }, create: { key, value }, update: { value } });
+  }
+
+  return NextResponse.json({
+    success: true,
+    accountsImported,
+    entriesImported,
+    positionsImported,
+    expensesImported: parsed.data.expenses.length,
+  });
 }

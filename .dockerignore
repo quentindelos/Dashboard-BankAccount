@@ -8,3 +8,4 @@ data
 .env.local
 backups
 npm-debug.log*
+imports

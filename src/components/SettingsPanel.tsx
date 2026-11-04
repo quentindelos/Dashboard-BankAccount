@@ -64,7 +64,7 @@ export default function SettingsPanel() {
         setImportError(data.error ?? "Erreur lors de l'import.");
         return;
       }
-      setImportMessage(`Import réussi : ${data.accountsImported} compte(s), ${data.entriesImported} relevé(s).`);
+      setImportMessage(`Import réussi : ${data.accountsImported} compte(s), ${data.entriesImported} relevé(s), ${data.expensesImported ?? 0} charge(s).`);
     } catch {
       setImportError("Fichier JSON invalide.");
     } finally {
@@ -95,7 +95,10 @@ export default function SettingsPanel() {
         </p>
         {importError && <p className="error-text">{importError}</p>}
         {importMessage && <p className="success-text">{importMessage}</p>}
-        <input ref={fileInputRef} type="file" accept="application/json" onChange={handleImport} disabled={importLoading} />
+        <input ref={fileInputRef} type="file" accept="application/json" onChange={handleImport} disabled={importLoading} style={{ display: "none" }} />
+        <button className="btn btn-primary" type="button" disabled={importLoading} onClick={() => fileInputRef.current?.click()}>
+          {importLoading ? "Import en cours…" : "Choisir un fichier JSON"}
+        </button>
       </div>
 
       <div className="card">

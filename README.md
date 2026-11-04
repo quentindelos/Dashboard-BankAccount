@@ -84,15 +84,35 @@ Il faut d'abord migrer vers Postgres (Cloud SQL) :
 4. Déploie l'image sur Cloud Run, avec Cloud SQL connecté via le connecteur
    natif (`--add-cloudsql-instances`).
 
-## Positions par instrument (optionnel)
+## Positions, analyse et conseils
 
-En plus de la valeur totale d'un compte, l'app peut stocker le détail des
-positions qu'il contient (instrument, ISIN, quantité, prix, valeur) pour une
-date de relevé donnée — visible sur la page de détail d'un compte. C'est
-alimenté via `POST /api/import/trade-republic` (même format que l'export/
-import JSON classique, avec un tableau `positions` par compte) ; tu peux
-saisir ça toi-même ou via un script maison, l'app ne dépend d'aucun outil
-externe pour ça.
+En plus de la valeur totale d'un compte, l'app stocke le détail des positions
+(instrument, ISIN, quantité, cours, valeur, prix de revient unitaire) pour une
+date de relevé.
+
+**Trade Republic** (PEA, CTO, crypto) : dans l'app Trade Republic, *Relevés →
+Exportation des transactions* sur toute la période, puis envoie le fichier
+(CSV ou Excel) dans *Réglages → Historique Trade Republic*. Les opérations sont
+rejouées une par une et valorisées chaque jour avec les cours de clôture
+(Yahoo Finance, convertis en euros) ; l'historique de ces comptes est
+remplacé. Les comptes Trade Republic ne se saisissent pas à la main.
+
+- **Synthèse** : patrimoine total, courbe par période (1M → TOUT), plus-value
+  latente, matelas de sécurité, niveau de risque, répartition, positions.
+- **Analyse** : exposition par transparence (zones, secteurs, devises,
+  principales sociétés détenues via les ETF), comparaison au marché mondial,
+  volatilité estimée, scénarios de crise et conseils automatiques.
+- **Matelas de sécurité** (Réglages) : choisis le ou les livrets qui le
+  composent et tes dépenses mensuelles pour suivre le nombre de mois couverts.
+
+Les compositions d'ETF, volatilités et éligibilités PEA viennent d'un
+référentiel statique : `src/lib/instruments.ts`. **Ajoute-y chaque nouveau
+titre acheté** (clé = ISIN) pour qu'il soit pris en compte dans l'analyse ;
+un titre absent est signalé comme « non reconnu ».
+
+Les courbes relient deux relevés d'un compte de placement par une ligne droite
+(au lieu de garder l'ancienne valeur puis de chuter le jour du relevé
+suivant) ; les livrets restent en escalier.
 
 ## Migrer ton historique vers une nouvelle instance
 

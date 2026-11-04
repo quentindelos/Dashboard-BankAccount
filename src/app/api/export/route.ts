@@ -17,8 +17,26 @@ export async function GET() {
     },
   });
 
+  const [expenses, settings] = await Promise.all([
+    prisma.recurringExpense.findMany({ orderBy: { createdAt: "asc" } }),
+    prisma.setting.findMany(),
+  ]);
+
   const payload = {
     exportFormatVersion: 2,
+    expenses: expenses.map((e) => ({
+      id: e.id,
+      name: e.name,
+      amount: e.amount,
+      category: e.category,
+      dayOfMonth: e.dayOfMonth,
+      frequency: e.frequency,
+      startMonth: e.startMonth,
+      active: e.active,
+      note: e.note,
+      accountId: e.accountId,
+    })),
+    settings: Object.fromEntries(settings.map((s) => [s.key, s.value])),
     exportedAt: new Date().toISOString(),
     accounts: accounts.map((a) => ({
       id: a.id,
@@ -27,6 +45,8 @@ export async function GET() {
       institution: a.institution,
       note: a.note,
       archived: a.archived,
+      emergencyFund: a.emergencyFund,
+      contributions: a.contributions,
       entries: a.entries.map((e) => ({ date: e.date.toISOString(), value: e.value, note: e.note })),
       positions: a.positions.map((p) => ({
         date: p.date.toISOString(),
@@ -35,6 +55,7 @@ export async function GET() {
         quantity: p.quantity,
         price: p.price,
         value: p.value,
+        costBasis: p.costBasis,
       })),
     })),
   };

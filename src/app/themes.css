@@ -1,0 +1,166 @@
+/* Color themes. <html data-theme="..."> is set server-side from the "theme"
+   cookie (see src/lib/themes.ts). Every theme defines the full token set;
+   components only ever reference these variables.
+
+   Categorical series: dark themes use the dark steps and the light theme the
+   light steps of the validated palette (dataviz skill), fixed slot order. */
+
+/* ---------- Bleu nuit (default) ---------- */
+:root,
+:root[data-theme="nuit"] {
+  color-scheme: dark;
+  --page-plane: #0b0e1c;
+  --page-bg: radial-gradient(1100px 520px at 0% -10%, rgba(124, 108, 255, 0.14), transparent 60%), #0b0e1c;
+  --surface-1: #141831;
+  --surface-2: #1b2040;
+  --surface-3: #262c55;
+  --surface-solid: #1b2040;
+  --hero-bg: linear-gradient(140deg, #232a63 0%, #171b3a 55%, #141831 100%);
+  --text-primary: #eef0ff;
+  --text-secondary: #b4b9d6;
+  --text-muted: #7f86ab;
+  --gridline: #232849;
+  --baseline: #363d68;
+  --border: rgba(160, 170, 255, 0.1);
+  --success: #34d399;
+  --critical: #f87171;
+  --warning: #fbbf24;
+  --good: #34d399;
+  --accent: #7c6cff;
+  --accent-bg: linear-gradient(135deg, #8b7dff, #6c5cf0);
+  --accent-ink: #ffffff;
+  --link: #a99dff;
+  --chart-line: #8b7dff;
+  --chart-line-2: #8b7dff;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  --card-blur: none;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #008300;
+  --series-7: #9085e9;
+  --series-8: #e66767;
+}
+
+/* ---------- Clair ---------- */
+:root[data-theme="clair"] {
+  color-scheme: light;
+  --page-plane: #f3f5f8;
+  --page-bg: #f3f5f8;
+  --surface-1: #ffffff;
+  --surface-2: #f2f5f8;
+  --surface-3: #e5ebf1;
+  --surface-solid: #ffffff;
+  --hero-bg: linear-gradient(140deg, #ecfdf5 0%, #ffffff 60%);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --gridline: #e8edf2;
+  --baseline: #cbd5e1;
+  --border: rgba(15, 23, 42, 0.08);
+  --success: #047857;
+  --critical: #dc2626;
+  --warning: #b45309;
+  --good: #059669;
+  --accent: #059669;
+  --accent-bg: linear-gradient(135deg, #10b981, #059669);
+  --accent-ink: #ffffff;
+  --link: #047857;
+  --chart-line: #059669;
+  --chart-line-2: #059669;
+  --shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
+  --card-blur: none;
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-7: #6250d6;
+  --series-8: #e34948;
+}
+
+/* ---------- Dégradé ---------- */
+:root[data-theme="degrade"] {
+  color-scheme: dark;
+  --page-plane: #07060c;
+  --page-bg: radial-gradient(1000px 560px at 5% -5%, rgba(139, 92, 246, 0.28), transparent 60%),
+    radial-gradient(900px 520px at 100% 0%, rgba(236, 72, 153, 0.2), transparent 60%),
+    radial-gradient(900px 600px at 50% 110%, rgba(99, 102, 241, 0.14), transparent 60%), #07060c;
+  --surface-1: rgba(255, 255, 255, 0.045);
+  --surface-2: rgba(255, 255, 255, 0.065);
+  --surface-3: rgba(255, 255, 255, 0.11);
+  --surface-solid: #16121f;
+  --hero-bg: linear-gradient(140deg, rgba(139, 92, 246, 0.22) 0%, rgba(236, 72, 153, 0.1) 55%, rgba(255, 255, 255, 0.04) 100%);
+  --text-primary: #f7f5ff;
+  --text-secondary: #cbc5e3;
+  --text-muted: #8d86aa;
+  --gridline: rgba(255, 255, 255, 0.07);
+  --baseline: rgba(255, 255, 255, 0.16);
+  --border: rgba(255, 255, 255, 0.1);
+  --success: #4ade80;
+  --critical: #fb7185;
+  --warning: #fbbf24;
+  --good: #4ade80;
+  --accent: #a78bfa;
+  --accent-bg: linear-gradient(135deg, #8b5cf6, #ec4899);
+  --accent-ink: #ffffff;
+  --link: #c4b5fd;
+  --chart-line: #a78bfa;
+  --chart-line-2: #f472b6;
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  --card-blur: blur(16px);
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #008300;
+  --series-7: #9085e9;
+  --series-8: #e66767;
+}
+
+/* ---------- Doré ---------- */
+:root[data-theme="dore"] {
+  color-scheme: dark;
+  --page-plane: #09090d;
+  --page-bg: #09090d;
+  --surface-1: #121218;
+  --surface-2: #1a1a22;
+  --surface-3: #23232d;
+  --surface-solid: #1a1a22;
+  --hero-bg: linear-gradient(140deg, #1d1a14 0%, #121218 60%);
+  --text-primary: #f3f2ef;
+  --text-secondary: #b9b8c3;
+  --text-muted: #7f7e8a;
+  --gridline: #22222b;
+  --baseline: #34343f;
+  --border: rgba(255, 255, 255, 0.07);
+  --success: #0ca30c;
+  --critical: #e66767;
+  --warning: #fab219;
+  --good: #0ca30c;
+  --accent: #f0b97a;
+  --accent-bg: #f0b97a;
+  --accent-ink: #1a1206;
+  --link: #f0b97a;
+  --chart-line: #f0b97a;
+  --chart-line-2: #f0b97a;
+  --shadow: none;
+  --card-blur: none;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #008300;
+  --series-7: #9085e9;
+  --series-8: #e66767;
+}
+
+:root {
+  --radius: 18px;
+  --radius-sm: 10px;
+}

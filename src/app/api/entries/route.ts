@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { entrySchema } from "@/lib/validation";
+import { isTradeRepublic } from "@/lib/accountTypes";
 
 export async function POST(request: NextRequest) {
   await requireAuth();
@@ -14,6 +15,9 @@ export async function POST(request: NextRequest) {
 
   const account = await prisma.account.findUnique({ where: { id: accountId } });
   if (!account) return NextResponse.json({ error: "Compte introuvable" }, { status: 404 });
+  if (isTradeRepublic(account.institution)) {
+    return NextResponse.json({ error: "Ce compte se met à jour par l'export Trade Republic (Réglages)." }, { status: 400 });
+  }
 
   const day = new Date(date);
   day.setUTCHours(0, 0, 0, 0);

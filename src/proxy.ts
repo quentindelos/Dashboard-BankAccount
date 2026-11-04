@@ -26,12 +26,15 @@ function generateNonce(): string {
 }
 
 function buildCsp(nonce: string): string {
+  // React needs eval() in development only (to rebuild server error stacks
+  // in the browser); production never uses it, so it stays forbidden there.
+  const devEval = process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : "";
   return [
     "default-src 'self'",
     // 'strict-dynamic' + nonce lets Next.js's own hydration/RSC inline
     // scripts run (it auto-detects the nonce in this header) while still
     // rejecting any script an attacker might inject without it.
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${devEval}`,
     // Inline `style="..."` attributes (used extensively by React and by
     // Recharts for chart positioning/colors) aren't covered by nonces —
     // CSP has no nonce mechanism for the style attribute, only for <style>
