@@ -1,6 +1,7 @@
 "use client";
 
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useState } from "react";
+import { Area, AreaChart, CartesianGrid, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useChartTheme } from "@/lib/useChartTheme";
 
 export interface TimeRow {
@@ -43,6 +44,26 @@ export function sliceRange(rows: TimeRow[], range: RangeKey, now = Date.now()): 
   const before = rows.filter((r) => r.t < start).at(-1);
   if (!before) return inside;
   return [{ ...before, t: start }, ...inside];
+}
+
+/** Rows of a zoomed period [from, to], with the value known at `from` so the
+ * line starts at the left edge. */
+export function sliceWindow(rows: TimeRow[], from: number, to: number): TimeRow[] {
+  const inside = rows.filter((r) => r.t >= from && r.t <= to);
+  const before = rows.filter((r) => r.t < from).at(-1);
+  return before ? [{ ...before, t: from }, ...inside] : inside;
+}
+
+export interface Zoom {
+  from: number;
+  to: number;
+}
+
+const zoomDate = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+
+/** "3 août 2025 → 2 oct. 2025" */
+export function zoomLabel(zoom: Zoom): string {
+  return `${zoomDate.format(zoom.from)} → ${zoomDate.format(zoom.to)}`;
 }
 
 /** Change between the first and last visible rows. When the amount invested
@@ -109,6 +130,7 @@ export default function TimeSeriesChart({
   curve = "linear",
   height = 300,
   seriesLabel = "Total",
+  onZoom,
 }: {
   rows: TimeRow[];
   /** When provided, draws one stacked area per series instead of the total. */
@@ -116,9 +138,13 @@ export default function TimeSeriesChart({
   curve?: "linear" | "stepAfter";
   height?: number | `${number}%`;
   seriesLabel?: string;
+  /** Enables zooming: drag across the chart to select a period. */
+  onZoom?: (zoom: Zoom) => void;
 }) {
   const chrome = useChartTheme();
   const colorOf = (c: string) => (c.startsWith("var(") ? chrome.series(c) : c);
+  // Period being selected with the mouse: where the drag started and where it is now.
+  const [drag, setDrag] = useState<{ a: number; b: number } | null>(null);
 
   if (rows.length < 2) {
     return <p className="muted">Ajoute au moins deux relevés (à des dates différentes) pour voir l'évolution.</p>;
@@ -131,9 +157,37 @@ export default function TimeSeriesChart({
   const keys = stack ? stack.map((s) => s.key) : ["total"];
   const yAxis = valueAxis(rows.flatMap((r) => keys.map((k) => r[k] ?? 0)));
 
+  // Recharts gives the x value (timestamp) under the pointer as activeLabel.
+  const at = (state: { activeLabel?: string | number } | null) => {
+    const t = Number(state?.activeLabel);
+    return Number.isFinite(t) ? t : null;
+  };
+  const endDrag = () => {
+    if (drag && onZoom) {
+      const from = Math.min(drag.a, drag.b);
+      const to = Math.max(drag.a, drag.b);
+      // Ignore a plain click, and keep at least two points in view.
+      if (to - from >= DAY && rows.filter((r) => r.t >= from && r.t <= to).length >= 2) onZoom({ from, to });
+    }
+    setDrag(null);
+  };
+
   return (
-    <ResponsiveContainer width="100%" height={height}>
-      <AreaChart data={rows} margin={{ top: 10, right: 6, left: 0, bottom: 0 }}>
+    <ResponsiveContainer width="100%" height={height} className={onZoom ? "chart-zoomable" : undefined}>
+      <AreaChart
+        data={rows}
+        margin={{ top: 10, right: 6, left: 0, bottom: 0 }}
+        onMouseDown={(state) => {
+          const t = onZoom ? at(state) : null;
+          if (t !== null) setDrag({ a: t, b: t });
+        }}
+        onMouseMove={(state) => {
+          const t = drag ? at(state) : null;
+          if (t !== null && drag && t !== drag.b) setDrag({ ...drag, b: t });
+        }}
+        onMouseUp={endDrag}
+        onMouseLeave={() => setDrag(null)}
+      >
         <defs>
           <linearGradient id="fill-total" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={chrome.line} stopOpacity={0.32} />
@@ -220,19 +274,56 @@ export default function TimeSeriesChart({
             activeDot={{ r: 5, fill: chrome.line2, stroke: chrome.surface, strokeWidth: 2 }}
           />
         )}
+        {drag && drag.a !== drag.b && (
+          <ReferenceArea
+            x1={Math.min(drag.a, drag.b)}
+            x2={Math.max(drag.a, drag.b)}
+            fill={chrome.line}
+            fillOpacity={0.12}
+            stroke={chrome.line}
+            strokeOpacity={0.5}
+            ifOverflow="hidden"
+          />
+        )}
       </AreaChart>
     </ResponsiveContainer>
   );
 }
 
-export function RangeTabs({ value, onChange }: { value: RangeKey; onChange: (r: RangeKey) => void }) {
+export function RangeTabs({
+  value,
+  onChange,
+  zoom,
+  onResetZoom,
+}: {
+  value: RangeKey;
+  onChange: (r: RangeKey) => void;
+  /** A period selected on the chart: no preset is active while it is shown. */
+  zoom?: Zoom | null;
+  onResetZoom?: () => void;
+}) {
   return (
-    <div className="segmented" role="group" aria-label="Période">
-      {RANGES.map((r) => (
-        <button key={r} type="button" aria-pressed={value === r} onClick={() => onChange(r)}>
-          {r}
-        </button>
-      ))}
+    <div className="range-controls">
+      {zoom && onResetZoom && (
+        <span className="zoom-chip">
+          <span className="zoom-label">{zoomLabel(zoom)}</span>
+          <button type="button" className="zoom-reset" onClick={onResetZoom} aria-label="Annuler le zoom" title="Annuler le zoom">
+            ×
+          </button>
+        </span>
+      )}
+      <div className="segmented" role="group" aria-label="Période">
+        {RANGES.map((r) => (
+          <button key={r} type="button" aria-pressed={!zoom && value === r} onClick={() => onChange(r)}>
+            {r}
+          </button>
+        ))}
+      </div>
     </div>
   );
+}
+
+/** Hint under a zoomable chart. */
+export function ZoomHint() {
+  return <p className="muted chart-hint">Clique-glisse sur la courbe pour zoomer sur une période.</p>;
 }

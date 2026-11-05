@@ -7,9 +7,11 @@ import { findInstrument } from "@/lib/instruments";
 import { institutionLogo, instrumentLogo } from "@/lib/logos";
 import SynthesisView from "@/components/SynthesisView";
 import { computeGains } from "@/lib/gains";
+import { buildChecklist } from "@/lib/checklist";
+import ChecklistCard from "@/components/ChecklistCard";
 
 export default async function DashboardPage() {
-  const [data, settings] = await Promise.all([loadPortfolio(), getSettings()]);
+  const [data, settings, checklist] = await Promise.all([loadPortfolio(), getSettings(), buildChecklist()]);
 
   if (data.accounts.length === 0) {
     return (
@@ -68,7 +70,9 @@ export default async function DashboardPage() {
   });
 
   return (
-    <SynthesisView
+    <>
+      <ChecklistCard items={checklist} />
+      <SynthesisView
       rows={rows}
       accountSeries={accountSeries}
       investedAccounts={data.accounts.filter((a) => a.id in data.investedAt).map((a) => ({ id: a.id, name: a.name }))}
@@ -82,6 +86,7 @@ export default async function DashboardPage() {
       advice={analysis.advice}
       riskLevel={analysis.riskLevel}
       volatility={analysis.investedVolatility}
-    />
+      />
+    </>
   );
 }

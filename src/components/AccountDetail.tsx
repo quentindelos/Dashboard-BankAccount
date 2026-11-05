@@ -4,7 +4,16 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { accountTypeLabel, isTradeRepublic } from "@/lib/accountTypes";
-import TimeSeriesChart, { RangeTabs, extendToToday, periodChange, sliceRange, type RangeKey } from "@/components/TimeSeriesChart";
+import TimeSeriesChart, {
+  RangeTabs,
+  ZoomHint,
+  extendToToday,
+  periodChange,
+  sliceRange,
+  sliceWindow,
+  type RangeKey,
+  type Zoom,
+} from "@/components/TimeSeriesChart";
 import { Delta, eur0, formatPct, signed } from "@/components/ui";
 import Logo from "@/components/Logo";
 import type { LogoKey } from "@/lib/logos";
@@ -55,6 +64,7 @@ export default function AccountDetail({
 }) {
   const router = useRouter();
   const [range, setRange] = useState<RangeKey>("TOUT");
+  const [zoom, setZoom] = useState<Zoom | null>(null);
   const [entries, setEntries] = useState(initialEntries);
   const [date, setDate] = useState(todayIso());
   const [value, setValue] = useState("");
@@ -141,17 +151,15 @@ export default function AccountDetail({
   // Amount invested known every day (Trade Republic import): the period
   // change then excludes deposits and shows the gain itself.
   const investedKnown = entries.length > 0 && entries.every((en) => en.invested !== null);
-  const chartRows = sliceRange(
-    extendToToday(
-      entries.map((en) => ({
-        t: Date.parse(en.date.slice(0, 10)),
-        total: en.value,
-        ...(investedKnown ? { invested: en.invested ?? 0 } : {}),
-      }))
-    ),
-    range
+  const allRows = extendToToday(
+    entries.map((en) => ({
+      t: Date.parse(en.date.slice(0, 10)),
+      total: en.value,
+      ...(investedKnown ? { invested: en.invested ?? 0 } : {}),
+    }))
   );
-  const period = range === "TOUT" ? null : periodChange(chartRows, ["total"], investedKnown ? ["invested"] : []);
+  const chartRows = zoom ? sliceWindow(allRows, zoom.from, zoom.to) : sliceRange(allRows, range);
+  const period = !zoom && range === "TOUT" ? null : periodChange(chartRows, ["total"], investedKnown ? ["invested"] : []);
   const latestValue = entries.at(-1)?.value ?? 0;
   const managed = isTradeRepublic(account.institution);
   const positionsCost = positionsForDate.every((p) => p.costBasis !== null)
@@ -191,9 +199,24 @@ export default function AccountDetail({
             {managed &&
               (entries.length > 0 ? `Valeur quotidienne · à jour au ${dateFmt.format(new Date(entries.at(-1)!.date))}` : "Aucun historique importé")}
           </span>
-          <RangeTabs value={range} onChange={setRange} />
+          <RangeTabs
+            value={range}
+            onChange={(r) => {
+              setRange(r);
+              setZoom(null);
+            }}
+            zoom={zoom}
+            onResetZoom={() => setZoom(null)}
+          />
         </div>
-        <TimeSeriesChart rows={chartRows} curve={account.type === "LIVRET" ? "stepAfter" : "linear"} height={240} seriesLabel={account.name} />
+        <TimeSeriesChart
+          rows={chartRows}
+          curve={account.type === "LIVRET" ? "stepAfter" : "linear"}
+          height={240}
+          seriesLabel={account.name}
+          onZoom={setZoom}
+        />
+        {allRows.length > 2 && <ZoomHint />}
       </div>
 
       {positionDates.length > 0 && (

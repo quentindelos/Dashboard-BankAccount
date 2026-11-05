@@ -1,18 +1,33 @@
 "use client";
 
-import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   DETAIL_LABEL,
   PROVIDER_LABEL,
-  RESET_MARKER,
   RISK_LABEL,
   THINKING_LABEL,
   modelLabel,
   type ChatMessage,
+  type StreamEvent,
 } from "@/lib/assistantShared";
 import AssistantSettingsPanel, { type AssistantInfo } from "@/components/AssistantSettingsPanel";
 
-const STORAGE_KEY = "assistant-conversation";
+/** Where the previous version of the page kept its single conversation. */
+const LEGACY_STORAGE_KEY = "assistant-conversation";
+
+interface ConversationSummary {
+  id: string;
+  title: string;
+  updatedAt: string;
+}
+
+const dayFormat = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" });
+const timeFormat = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
+
+function when(iso: string): string {
+  const d = new Date(iso);
+  return d.toDateString() === new Date().toDateString() ? timeFormat.format(d) : dayFormat.format(d);
+}
 
 const SUGGESTIONS = [
   "Quels montages fiscaux me conseilles-tu cette année ?",
@@ -29,86 +44,151 @@ export default function AssistantChat({ initial }: { initial: AssistantInfo }) {
   const [info, setInfo] = useState(initial);
   const [showSettings, setShowSettings] = useState(false);
   const { provider, settings } = info;
+  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showHistory, setShowHistory] = useState(false);
+  const [memoryVersion, setMemoryVersion] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
-  // Keep the conversation when moving between pages (this browser only).
-  useEffect(() => {
+  const refreshList = useCallback(async () => {
     try {
-      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
-      if (Array.isArray(saved)) setMessages(saved.filter((m) => m?.content));
+      const res = await fetch("/api/assistant/conversations", { cache: "no-store" });
+      if (res.ok) setConversations((await res.json()).conversations);
     } catch {
-      // nothing saved
+      // keep the current list
     }
   }, []);
+
+  // Load the history. A conversation kept in this browser by the previous
+  // version of the page is moved to the server once.
   useEffect(() => {
-    if (busy) return;
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
-    } catch {
-      // storage unavailable
-    }
-  }, [messages, busy]);
+    (async () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem(LEGACY_STORAGE_KEY) ?? "[]");
+        if (Array.isArray(saved) && saved.length >= 2) {
+          const res = await fetch("/api/assistant/conversations", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ messages: saved.filter((m) => m?.content).slice(-200) }),
+          });
+          if (res.ok) localStorage.removeItem(LEGACY_STORAGE_KEY);
+        } else {
+          localStorage.removeItem(LEGACY_STORAGE_KEY);
+        }
+      } catch {
+        // storage unavailable or nothing to move
+      }
+      refreshList();
+    })();
+  }, [refreshList]);
+
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
   }, [messages]);
+
+  async function open(id: string) {
+    if (busy || id === activeId) return;
+    setLoading(true);
+    setError("");
+    setShowHistory(false);
+    try {
+      const res = await fetch(`/api/assistant/conversations/${encodeURIComponent(id)}`, { cache: "no-store" });
+      if (!res.ok) throw new Error("Conversation introuvable.");
+      const { conversation } = await res.json();
+      setActiveId(conversation.id);
+      setMessages(conversation.messages);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur.");
+      refreshList();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function remove(id: string) {
+    if (!window.confirm("Supprimer cette conversation ? Ce que le conseiller a mémorisé est conservé.")) return;
+    await fetch(`/api/assistant/conversations/${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => undefined);
+    if (id === activeId) startNew();
+    refreshList();
+  }
+
+  function startNew() {
+    abortRef.current?.abort();
+    setActiveId(null);
+    setMessages([]);
+    setError("");
+    setShowHistory(false);
+  }
 
   async function ask(question: string) {
     const text = question.trim();
     if (!text || busy) return;
     setError("");
     setInput("");
-    const history: ChatMessage[] = [...messages, { role: "user", content: text }];
-    setMessages([...history, { role: "assistant", content: "" }]);
+    const before = messages;
+    let answer: ChatMessage = { role: "assistant", content: "" };
+    const show = () => setMessages([...before, { role: "user", content: text }, answer]);
+    show();
     setBusy(true);
     const controller = new AbortController();
     abortRef.current = controller;
-    let answer = "";
     try {
       const res = await fetch("/api/assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Keep the last 20 exchanges to bound the cost of long conversations.
-        body: JSON.stringify({ messages: history.slice(-40) }),
+        body: JSON.stringify({ conversationId: activeId, message: text }),
         signal: controller.signal,
       });
       if (!res.ok || !res.body) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error === "missing_key" ? "La clé API n'est pas configurée." : data.error ?? "Erreur du serveur.");
+        throw new Error(data.error === "missing_key" ? "La clé API n'est pas configurée." : (data.error ?? "Erreur du serveur."));
       }
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
+      let buffer = "";
       for (;;) {
         const { done, value } = await reader.read();
         if (done) break;
-        answer += decoder.decode(value, { stream: true });
-        const reset = answer.lastIndexOf(RESET_MARKER);
-        if (reset >= 0) answer = answer.slice(reset + RESET_MARKER.length);
-        setMessages([...history, { role: "assistant", content: answer }]);
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line) continue;
+          const event = JSON.parse(line) as StreamEvent;
+          if (event.t === "conversation") setActiveId(event.id);
+          else if (event.t === "text") answer = { ...answer, content: answer.content + event.v };
+          else if (event.t === "reset") answer = { ...answer, content: "" };
+          else if (event.t === "note") {
+            answer = { ...answer, notes: [...(answer.notes ?? []), event.v] };
+            if (event.kind === "memory") setMemoryVersion((v) => v + 1);
+          } else if (event.t === "error") setError(event.v);
+        }
+        show();
       }
     } catch (err) {
       if (controller.signal.aborted) {
-        answer += answer ? "\n\n_(Arrêté.)_" : "";
+        if (answer.content) answer = { ...answer, content: `${answer.content}\n\n_(Arrêté.)_` };
       } else {
         setError(err instanceof Error ? err.message : "Erreur.");
       }
     } finally {
-      // Drop an empty answer so the question can be asked again.
-      setMessages(answer ? [...history, { role: "assistant", content: answer }] : history.slice(0, -1));
-      if (!answer) setInput(text);
+      const answered = Boolean(answer.content || answer.notes?.length);
+      // Without an answer, the question goes back in the box to be asked again.
+      setMessages(answered ? [...before, { role: "user", content: text }, answer] : before);
+      if (!answered) {
+        setInput(text);
+        if (before.length === 0) setActiveId(null);
+      }
       setBusy(false);
       abortRef.current = null;
+      refreshList();
     }
-  }
-
-  function reset() {
-    abortRef.current?.abort();
-    setMessages([]);
-    setError("");
   }
 
   return (
@@ -120,8 +200,8 @@ export default function AssistantChat({ initial }: { initial: AssistantInfo }) {
             Ton conseiller patrimonial : fiscalité, enveloppes, allocation et performance, à partir de tes vrais chiffres.
           </p>
         </div>
-        {messages.length > 0 && (
-          <button type="button" className="btn" onClick={reset}>
+        {provider && (
+          <button type="button" className="btn btn-primary" onClick={startNew} disabled={!activeId && messages.length === 0}>
             Nouvelle conversation
           </button>
         )}
@@ -165,7 +245,12 @@ export default function AssistantChat({ initial }: { initial: AssistantInfo }) {
       )}
 
       {provider && showSettings && (
-        <AssistantSettingsPanel info={info} onSaved={setInfo} onClose={() => setShowSettings(false)} />
+        <AssistantSettingsPanel
+          info={info}
+          memoryVersion={memoryVersion}
+          onSaved={setInfo}
+          onClose={() => setShowSettings(false)}
+        />
       )}
 
       {!provider ? (
@@ -199,9 +284,46 @@ export default function AssistantChat({ initial }: { initial: AssistantInfo }) {
           </p>
         </div>
       ) : (
+        <div className="assistant-layout">
+        <aside className={showHistory ? "card chat-history open" : "card chat-history"} aria-label="Conversations précédentes">
+          <button
+            type="button"
+            className="chat-history-toggle"
+            aria-expanded={showHistory}
+            onClick={() => setShowHistory((s) => !s)}
+          >
+            Conversations ({conversations.length})
+          </button>
+          <h2 className="chat-history-title">Conversations</h2>
+          {conversations.length === 0 ? (
+            <p className="muted chat-history-empty">Tes conversations apparaîtront ici.</p>
+          ) : (
+            <ul className="chat-history-list">
+              {conversations.map((c) => (
+                <li key={c.id} className={c.id === activeId ? "active" : undefined}>
+                  <button type="button" className="chat-history-item" onClick={() => open(c.id)} disabled={busy}>
+                    <span className="chat-history-name">{c.title}</span>
+                    <span className="muted chat-history-date">{when(c.updatedAt)}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="chat-history-delete"
+                    aria-label={`Supprimer « ${c.title} »`}
+                    title="Supprimer"
+                    onClick={() => remove(c.id)}
+                    disabled={busy}
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </aside>
         <section className="card chat">
           <div className="chat-log" aria-live="polite">
-            {messages.length === 0 && (
+            {loading && <p className="muted">Chargement…</p>}
+            {messages.length === 0 && !loading && (
               <div className="chat-empty">
                 <p className="muted">Quelques idées pour commencer :</p>
                 <div className="chat-suggestions">
@@ -220,11 +342,16 @@ export default function AssistantChat({ initial }: { initial: AssistantInfo }) {
                 </div>
               ) : (
                 <div key={i} className="chat-msg assistant">
+                  {m.notes?.map((n, j) => (
+                    <p key={j} className="chat-memory-note">
+                      {n}
+                    </p>
+                  ))}
                   {m.content ? (
                     <Markdown text={m.content} />
-                  ) : (
+                  ) : busy && i === messages.length - 1 ? (
                     <span className="chat-thinking">{settings.webSearch ? "Analyse et recherche web…" : "Analyse de ta situation…"}</span>
-                  )}
+                  ) : null}
                 </div>
               )
             )}
@@ -269,6 +396,7 @@ export default function AssistantChat({ initial }: { initial: AssistantInfo }) {
             pas des conseils en investissement réglementés : vérifie avant d'agir.
           </p>
         </section>
+        </div>
       )}
     </>
   );

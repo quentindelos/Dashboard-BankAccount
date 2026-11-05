@@ -125,11 +125,27 @@ budget, évolution, projection) est envoyé à l'API choisie avec la
 conversation ; rien n'est stocké côté serveur, la conversation reste dans ton
 navigateur.
 
+C'est un agent : il utilise des outils pendant qu'il répond. Il **mémorise**
+de lui-même ce que tu lui apprends de durable (situation familiale, épargne
+salariale, projets, décisions) et s'en sert dans les conversations suivantes,
+et il lance une **recherche web** quand une réponse dépend d'un taux ou d'une
+règle à jour. Les conversations sont enregistrées dans la base (`./data/`) :
+la colonne *Conversations* permet de revenir aux précédentes depuis n'importe
+quel appareil.
+
 Le bouton **Paramètres** de la page règle le modèle, la profondeur de
 réflexion, la recherche web (vérification des taux et règles du moment, avec
 sources), la longueur des réponses, ton profil d'investisseur (risque, TMI,
-horizon, objectifs, situation) et des consignes libres. Il montre aussi
-exactement ce que reçoit l'IA.
+horizon, objectifs, situation) et des consignes libres. Il montre et permet
+de corriger sa mémoire, et exactement ce que reçoit l'IA.
+
+### Rappels « À mettre à jour »
+
+En haut de la Synthèse (et en pastille dans le menu), l'app liste ce qui est
+en retard ou manquant : export Trade Republic de plus de 14 jours, solde d'un
+livret ou d'une assurance vie non mis à jour depuis un mois, total versé
+inconnu, budget incomplet, matelas non choisi, plus quelques conseils pour
+affiner l'analyse. Chaque ligne disparaît dès que l'info est saisie.
 
 1. Crée une clé API (paiement à l'usage, quelques centimes par question) :
    - **Gemini via Google Cloud (Vertex AI)** : console Google Cloud →

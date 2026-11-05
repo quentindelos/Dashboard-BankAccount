@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   DEFAULT_SETTINGS,
   DETAIL_LABEL,
@@ -41,12 +41,158 @@ const RISK_HINT = {
 
 const tokens = (text: string) => `≈ ${Math.round(text.length / 3.5).toLocaleString("fr-FR")} tokens`;
 
+interface Memory {
+  id: number;
+  content: string;
+  updatedAt: string;
+}
+
+const dateFormat = new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" });
+
+// What the assistant remembers about the user: saved by itself during
+// conversations, editable here.
+function MemoryList({ version }: { version: number }) {
+  const [memories, setMemories] = useState<Memory[] | null>(null);
+  const [draft, setDraft] = useState("");
+  const [editing, setEditing] = useState<{ id: number; text: string } | null>(null);
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch("/api/assistant/memories", { cache: "no-store" });
+      if (res.ok) setMemories((await res.json()).memories);
+    } catch {
+      setError("Impossible de charger la mémoire.");
+    }
+  }, []);
+  useEffect(() => {
+    load();
+  }, [load, version]);
+
+  async function send(url: string, method: string, content?: string) {
+    setError("");
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: content === undefined ? undefined : JSON.stringify({ content }),
+    }).catch(() => null);
+    if (!res?.ok) {
+      const data = await res?.json().catch(() => ({}));
+      setError(data?.error ?? "Erreur.");
+      return false;
+    }
+    await load();
+    return true;
+  }
+
+  return (
+    <>
+      <h3>Mémoire du conseiller</h3>
+      <p className="field-hint memory-intro">
+        Ce qu'il a retenu de vos conversations (il l'ajoute lui-même quand tu lui apprends quelque chose de durable) et qu'il
+        utilise dans chaque réponse.
+      </p>
+      {memories === null ? (
+        <p className="muted">Chargement…</p>
+      ) : memories.length === 0 ? (
+        <p className="muted">Rien pour l'instant : parle-lui de ta situation, il retiendra l'essentiel.</p>
+      ) : (
+        <ul className="memory-list">
+          {memories.map((m) => (
+            <li key={m.id}>
+              {editing?.id === m.id ? (
+                // Not a <form>: this list sits inside the settings form.
+                <div className="memory-edit">
+                  <input
+                    aria-label="Texte du souvenir"
+                    value={editing.text}
+                    maxLength={500}
+                    autoFocus
+                    onChange={(e) => setEditing({ id: m.id, text: e.target.value })}
+                    onKeyDown={async (e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        if (await send(`/api/assistant/memories/${m.id}`, "PUT", editing.text)) setEditing(null);
+                      } else if (e.key === "Escape") {
+                        setEditing(null);
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={async () => {
+                      if (await send(`/api/assistant/memories/${m.id}`, "PUT", editing.text)) setEditing(null);
+                    }}
+                  >
+                    OK
+                  </button>
+                  <button type="button" className="btn btn-ghost" onClick={() => setEditing(null)}>
+                    Annuler
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <span className="memory-text">
+                    {m.content} <span className="muted">· {dateFormat.format(new Date(m.updatedAt))}</span>
+                  </span>
+                  <span className="memory-actions">
+                    <button type="button" className="btn btn-ghost" onClick={() => setEditing({ id: m.id, text: m.content })}>
+                      Modifier
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      aria-label={`Oublier : ${m.content}`}
+                      onClick={() => send(`/api/assistant/memories/${m.id}`, "DELETE")}
+                    >
+                      Oublier
+                    </button>
+                  </span>
+                </>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="memory-edit">
+        <input
+          aria-label="Ajouter un élément à la mémoire"
+          placeholder="Ajouter une info, ex. : abondement Thales de 100 % jusqu'à 1 000 €/an sur le PEE"
+          value={draft}
+          maxLength={500}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={async (e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              if (draft.trim() && (await send("/api/assistant/memories", "POST", draft))) setDraft("");
+            }
+          }}
+        />
+        <button
+          type="button"
+          className="btn"
+          disabled={!draft.trim()}
+          onClick={async () => {
+            if (await send("/api/assistant/memories", "POST", draft)) setDraft("");
+          }}
+        >
+          Ajouter
+        </button>
+      </div>
+      {error && <p className="error-text">{error}</p>}
+    </>
+  );
+}
+
 export default function AssistantSettingsPanel({
   info,
+  memoryVersion,
   onSaved,
   onClose,
 }: {
   info: AssistantInfo;
+  memoryVersion: number;
   onSaved: (info: AssistantInfo) => void;
   onClose: () => void;
 }) {
@@ -200,6 +346,8 @@ export default function AssistantSettingsPanel({
           </span>
         </span>
       </label>
+
+      <MemoryList version={memoryVersion} />
 
       <h3>Mon profil d'investisseur</h3>
       <div className="form-grid">

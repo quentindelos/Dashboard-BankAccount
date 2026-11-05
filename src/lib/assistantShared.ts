@@ -1,9 +1,5 @@
 // Shared by the assistant API route and the chat page (no server imports).
 
-/** Sent in the answer stream when the model hands over to a fallback model:
- * the client drops what it has shown of this answer and starts again. */
-export const RESET_MARKER = "\u0000RESET\u0000";
-
 export type AssistantProvider = "gemini" | "claude";
 
 export const PROVIDER_LABEL: Record<AssistantProvider, string> = {
@@ -101,4 +97,16 @@ export const DEFAULT_SETTINGS: AssistantSettings = {
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  /** What the assistant did while answering (memory saved, updated, removed). */
+  notes?: string[];
 }
+
+/** One line of the answer stream (newline-delimited JSON). */
+export type StreamEvent =
+  | { t: "conversation"; id: string; title: string }
+  | { t: "text"; v: string }
+  /** The model handed over to a fallback model: drop this answer's text so far. */
+  | { t: "reset" }
+  /** A tool the assistant used: a memory saved or changed, a web search. */
+  | { t: "note"; kind: "memory" | "search"; v: string }
+  | { t: "error"; v: string };

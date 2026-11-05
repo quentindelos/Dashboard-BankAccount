@@ -73,6 +73,16 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [username, setUsername] = useState("");
+  const [due, setDue] = useState(0);
+
+  // Number of things to update (see the reminder card on the Synthèse page),
+  // refreshed on each page change so it drops as soon as data is filled in.
+  useEffect(() => {
+    fetch("/api/checklist", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d && setDue(d.due))
+      .catch(() => undefined);
+  }, [pathname]);
 
   useEffect(() => {
     fetch("/api/me")
@@ -108,6 +118,11 @@ export default function Sidebar() {
         <Link key={l.href} href={l.href} className={`nav-link${pathname.startsWith(l.href) ? " active" : ""}`} title={l.label}>
           {l.icon}
           <span className="nav-label">{l.label}</span>
+          {l.href === "/dashboard" && due > 0 && (
+            <span className="nav-badge" title={`${due} élément${due > 1 ? "s" : ""} à mettre à jour`}>
+              {due}
+            </span>
+          )}
         </Link>
       ))}
       <div className="sidebar-footer">

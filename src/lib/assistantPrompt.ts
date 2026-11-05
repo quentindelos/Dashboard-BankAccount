@@ -37,6 +37,14 @@ Ce sont des montages et optimisations légaux ; vérifie toujours les conditions
 - Les plafonds, taux et barèmes changent souvent (lois de finances, taux des livrets révisés deux fois par an, prélèvements sociaux relevés en 2026). Donne le chiffre que tu connais avec son année et signale quand il faut le vérifier.
 - Pour une décision lourde ou irréversible (gros arbitrage, PER, achat immobilier, succession), dis quand l'avis d'un professionnel (notaire, CGP, expert-comptable) vaut le coup.`;
 
+const MEMORY = `## Mémoire
+Tu as une mémoire à long terme, listée dans la section « Ta mémoire » de l'instantané, avec des outils pour la tenir à jour : memoriser, modifier_memoire, oublier.
+- Dès que l'utilisateur t'apprend une information durable utile à ses conseils (situation familiale ou fiscale, revenu fiscal de référence, épargne salariale et abondement Thales, projets et dates, objectifs chiffrés, préférences ou refus, décision prise, action réalisée comme « j'ai ouvert un LEP »), appelle memoriser sans lui demander la permission, puis réponds normalement.
+- Si une info contredit ou complète un élément existant, utilise modifier_memoire sur cet élément plutôt que d'en créer un nouveau ; s'il demande d'oublier quelque chose, utilise oublier.
+- Ne mémorise pas ce que l'instantané contient déjà (soldes, positions, budget), ni les questions elles-mêmes, ni tes propres conseils, sauf s'il dit les adopter.
+- Utilise ta mémoire dans tes réponses : ne repose pas une question dont tu connais la réponse, et fais le lien avec ce qu'il t'a dit avant quand c'est utile.
+- Quand une information te manque pour un conseil précis, pose-lui la question en fin de réponse (une ou deux questions au plus) : ses réponses enrichiront ta mémoire.`;
+
 const SEARCH = `## Recherche web
 Tu peux chercher sur le web. Fais-le pour vérifier les taux, plafonds et règles fiscales en vigueur (taux des livrets, PFU et prélèvements sociaux, plafonds PEA, PER, abattements), les cours ou les frais d'un produit, et toute nouveauté législative. Privilégie les sources officielles (service-public.fr, impots.gouv.fr, economie.gouv.fr, Banque de France, AMF) et les documents des émetteurs. Ne cherche pas ce que l'instantané contient déjà.`;
 
@@ -47,7 +55,7 @@ const FORMAT = {
 } as const;
 
 export function buildInstructions(settings: AssistantSettings, webSearch: boolean): string {
-  const parts = [ROLE, METHOD, TAX_LEVERS];
+  const parts = [ROLE, METHOD, MEMORY, TAX_LEVERS];
   if (webSearch) parts.push(SEARCH);
   parts.push(FORMAT[settings.detail]);
   const extra = settings.instructions.trim();

@@ -2,7 +2,17 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import TimeSeriesChart, { RangeTabs, extendToToday, periodChange, sliceRange, type RangeKey, type TimeRow } from "@/components/TimeSeriesChart";
+import TimeSeriesChart, {
+  RangeTabs,
+  ZoomHint,
+  extendToToday,
+  periodChange,
+  sliceRange,
+  sliceWindow,
+  type RangeKey,
+  type TimeRow,
+  type Zoom,
+} from "@/components/TimeSeriesChart";
 import { accountTypeCssVar, accountTypeLabel, accountTypeShort } from "@/lib/accountTypes";
 import type { Advice, Cushion, Slice } from "@/lib/analysis";
 import type { LogoKey } from "@/lib/logos";
@@ -55,16 +65,18 @@ export default function SynthesisView({
 }) {
   const [range, setRange] = useState<RangeKey>("1A");
   const [mode, setMode] = useState<"total" | "stack">("total");
+  const [zoom, setZoom] = useState<Zoom | null>(null);
 
-  const visible = sliceRange(extendToToday(rows), range);
+  const visible = zoom ? sliceWindow(extendToToday(rows), zoom.from, zoom.to) : sliceRange(extendToToday(rows), range);
+  const allTime = !zoom && range === "TOUT";
 
   const stack = accountSeries;
 
   // Over a chosen period: gain of the accounts whose deposits are known
   // (deposits excluded), and the raw change of the whole net worth.
-  const netChange = range === "TOUT" ? null : periodChange(visible);
+  const netChange = allTime ? null : periodChange(visible);
   const investedGain =
-    range === "TOUT" || investedAccounts.length === 0
+    allTime || investedAccounts.length === 0
       ? null
       : periodChange(
           visible,
@@ -112,13 +124,22 @@ export default function SynthesisView({
                 Par placement
               </button>
             </div>
-            <RangeTabs value={range} onChange={setRange} />
+            <RangeTabs
+              value={range}
+              onChange={(r) => {
+                setRange(r);
+                setZoom(null);
+              }}
+              zoom={zoom}
+              onResetZoom={() => setZoom(null)}
+            />
           </div>
           <div className="hero-chart">
             <div className="hero-chart-inner">
-              <TimeSeriesChart rows={visible} stack={mode === "stack" ? stack : undefined} height="100%" />
+              <TimeSeriesChart rows={visible} stack={mode === "stack" ? stack : undefined} height="100%" onZoom={setZoom} />
             </div>
           </div>
+          <ZoomHint />
           {mode === "stack" && (
             <div className="legend">
               {stack.map((s) => (

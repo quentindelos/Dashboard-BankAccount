@@ -12,6 +12,8 @@ import { categoryMeta, isIncome, isSavings, monthlyEquivalent } from "@/lib/expe
 import { loadProjectionSettings } from "@/lib/projectionSettings";
 import { netMonthlyFromGross } from "@/lib/career";
 import { RISK_LABEL, type AssistantSettings } from "@/lib/assistantShared";
+import { listMemories } from "@/lib/assistantStore";
+import { buildChecklist } from "@/lib/checklist";
 
 const eur = (n: number) => `${Math.round(n).toLocaleString("fr-FR")} €`;
 const eur2 = (n: number) => `${n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
@@ -19,11 +21,13 @@ const pct = (n: number, digits = 1) => `${(n * 100).toLocaleString("fr-FR", { ma
 const signed = (n: number) => (n >= 0 ? "+" : "−") + eur(Math.abs(n));
 
 export async function buildAssistantContext(profile: AssistantSettings, now = new Date()): Promise<string> {
-  const [data, settings, expenses, projection] = await Promise.all([
+  const [data, settings, expenses, projection, memories, checklist] = await Promise.all([
     loadPortfolio(),
     getSettings(),
     prisma.recurringExpense.findMany({ where: { active: true }, include: { account: { select: { name: true } } } }),
     loadProjectionSettings(),
+    listMemories(),
+    buildChecklist(now),
   ]);
   const gains = computeGains(data);
   const analysis = analyzePortfolio(data.holdings, data.otherAssets, settings);
@@ -45,6 +49,13 @@ export async function buildAssistantContext(profile: AssistantSettings, now = ne
   );
   if (profile.horizon.trim()) line(`- Horizon : ${profile.horizon.trim()}`);
   if (profile.goals.trim()) line(`- Objectifs : ${profile.goals.trim()}`);
+  line();
+
+  line("## Ta mémoire (ce que tu as appris lors des conversations précédentes)");
+  if (memories.length === 0) line("- Rien pour l'instant.");
+  for (const m of memories) {
+    line(`- [${m.id}] ${m.content} (noté le ${m.updatedAt.toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" })})`);
+  }
   line();
 
   // ---- Accounts
@@ -199,6 +210,14 @@ export async function buildAssistantContext(profile: AssistantSettings, now = ne
     line(
       `- Après le diplôme (valeurs par défaut) : CDI chez Thales dès 2027-10, 42 000 € brut/an ≈ ${eur(netMonthlyFromGross(42_000))} net/mois après impôt (fourchette jeunes diplômés Bac+5 : 39–47 k€), APL et prime d'activité supprimées, +3,5 %/an, 50 % de la hausse investie sur le PEA`
     );
+  }
+
+  // ---- What is missing or out of date (the reminder card of the Synthèse page)
+  const todo = checklist.filter((i) => !i.id.startsWith("assistant-"));
+  if (todo.length) {
+    line();
+    line("## Données à compléter ou mettre à jour dans l'app");
+    for (const i of todo) line(`- ${i.title} : ${i.detail}`);
   }
 
   return out.join("\n");
