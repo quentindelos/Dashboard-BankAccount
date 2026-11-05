@@ -114,6 +114,28 @@ Les courbes relient deux relevés d'un compte de placement par une ligne droite
 (au lieu de garder l'ancienne valeur puis de chuter le jour du relevé
 suivant) ; les livrets restent en escalier.
 
+## Conseiller (IA)
+
+La page **Conseiller** répond à tes questions sur tes finances avec Gemini
+(Google) ou Claude (Anthropic). À chaque question, un résumé de ta situation du
+jour (comptes, positions, plus-values, répartition, budget, évolution,
+projection) est envoyé à l'API choisie avec la conversation ; rien n'est stocké
+côté serveur, la conversation reste dans ton navigateur.
+
+1. Crée une clé API (paiement à l'usage, quelques centimes par question) :
+   - **Gemini** : console Google Cloud → *API et services → Identifiants →
+     Créer des identifiants → Clé API*, dans un projet où la facturation est
+     activée (sinon Google peut utiliser tes données pour améliorer ses
+     produits). Limite la clé à « Generative Language API ».
+   - **Claude** : https://console.anthropic.com/settings/keys
+2. Ajoute-la dans `.env` : `GEMINI_API_KEY="AIza..."` ou
+   `ANTHROPIC_API_KEY="sk-ant-..."` (Gemini est utilisé si les deux sont là ;
+   `GEMINI_MODEL` change le modèle, `gemini-3.8-flash` par défaut).
+3. Redémarre : `docker compose up -d` (ou `npm run dev` en local).
+
+Sans clé, la page explique comment la configurer et le reste de l'app
+fonctionne normalement.
+
 ## Migrer ton historique vers une nouvelle instance
 
 C'est le flux "je clone le repo ailleurs et je récupère mon historique" :

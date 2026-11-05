@@ -52,12 +52,20 @@ const projectionIcon = (
   </svg>
 );
 
+const assistantIcon = (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.2A8 8 0 1 1 20 12z" />
+    <path d="M9 11h.01M12 11h.01M15 11h.01" />
+  </svg>
+);
+
 const links = [
   { href: "/dashboard", label: "Synthèse", icon: icons.synthese },
   { href: "/accounts", label: "Comptes", icon: icons.comptes },
   { href: "/expenses", label: "Dépenses", icon: depensesIcon },
   { href: "/analysis", label: "Analyse", icon: icons.analyse },
   { href: "/projection", label: "Projection", icon: projectionIcon },
+  { href: "/assistant", label: "Conseiller", icon: assistantIcon },
   { href: "/settings", label: "Réglages", icon: icons.reglages },
 ];
 
