@@ -13,7 +13,14 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 # The postinstall hook runs `prisma generate`, which needs the schema present.
 COPY prisma ./prisma
-RUN npm ci
+# The lockfile doesn't record which Next.js compiler (SWC) build targets glibc
+# and which targets musl, so npm may install only the glibc one, which can't
+# load on Alpine ("__res_init: symbol not found") and makes `next build`
+# fail. Add the musl build for this CPU and Next.js version when missing.
+RUN npm ci \
+ && if ! node -e "require('@next/swc-linux-' + process.arch + '-musl')" 2>/dev/null; then \
+      npm install --no-save "@next/swc-linux-$(node -p process.arch)-musl@$(node -p "require('next/package.json').version")"; \
+    fi
 
 # ---- builder: compile the Next.js app ------------------------------------
 FROM base AS builder
