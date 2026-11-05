@@ -1,25 +1,34 @@
 "use client";
 
 import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
-import { RESET_MARKER, type AssistantProvider, type ChatMessage } from "@/lib/assistantShared";
+import {
+  DETAIL_LABEL,
+  PROVIDER_LABEL,
+  RESET_MARKER,
+  RISK_LABEL,
+  THINKING_LABEL,
+  modelLabel,
+  type ChatMessage,
+} from "@/lib/assistantShared";
+import AssistantSettingsPanel, { type AssistantInfo } from "@/components/AssistantSettingsPanel";
 
 const STORAGE_KEY = "assistant-conversation";
 
 const SUGGESTIONS = [
-  "Mon portefeuille est-il bien diversifié ?",
+  "Quels montages fiscaux me conseilles-tu cette année ?",
+  "Comment préparer ma fiscalité avant mon CDI fin 2027 ?",
+  "Analyse la performance de chaque compte et de mes lignes",
+  "Comment rééquilibrer mon portefeuille sans payer d'impôt ?",
+  "PER, assurance vie ou PEA : où verser en priorité ?",
   "Que faire de mon Livret Jeune avant fin 2029 ?",
-  "Comment répartir l'épargne en plus après mon CDI ?",
   "Mon matelas de sécurité est-il suffisant ?",
-  "Quelles charges pourrais-je réduire ?",
-  "PEA ou CTO pour mes prochains achats ?",
+  "Comment profiter au mieux de l'épargne salariale Thales ?",
 ];
 
-const PROVIDER_LABEL: Record<AssistantProvider, string> = {
-  gemini: "Gemini (Google)",
-  claude: "Claude (Anthropic)",
-};
-
-export default function AssistantChat({ provider }: { provider: AssistantProvider | null }) {
+export default function AssistantChat({ initial }: { initial: AssistantInfo }) {
+  const [info, setInfo] = useState(initial);
+  const [showSettings, setShowSettings] = useState(false);
+  const { provider, settings } = info;
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -107,7 +116,9 @@ export default function AssistantChat({ provider }: { provider: AssistantProvide
       <div className="page-header">
         <div>
           <h1>Conseiller</h1>
-          <p className="muted">Pose tes questions : il connaît tes comptes, tes positions, ton budget et ta projection.</p>
+          <p className="muted">
+            Ton conseiller patrimonial : fiscalité, enveloppes, allocation et performance, à partir de tes vrais chiffres.
+          </p>
         </div>
         {messages.length > 0 && (
           <button type="button" className="btn" onClick={reset}>
@@ -116,6 +127,47 @@ export default function AssistantChat({ provider }: { provider: AssistantProvide
         )}
       </div>
 
+      {provider && info.model && (
+        <section className="card agent-card">
+          <div className="agent-id">
+            <div className="agent-avatar" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 3l1.9 4.6L18.5 9l-4.6 1.9L12 15.5l-1.9-4.6L5.5 9l4.6-1.4z" />
+                <path d="M18.5 15.5l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8z" />
+              </svg>
+            </div>
+            <div>
+              <div className="agent-name">
+                Conseiller patrimonial <span className="agent-status">actif</span>
+              </div>
+              <div className="muted agent-model">
+                {modelLabel(info.model)} ·{" "}
+                {provider === "gemini" ? (info.vertex ? "Vertex AI (Google Cloud)" : "API Gemini") : PROVIDER_LABEL[provider]}
+              </div>
+            </div>
+          </div>
+          <ul className="agent-badges" aria-label="Paramètres actuels">
+            <li className="pill">Réflexion {THINKING_LABEL[settings.thinking].toLowerCase()}</li>
+            <li className="pill">{settings.webSearch ? "Recherche web activée" : "Sans recherche web"}</li>
+            <li className="pill">Profil {RISK_LABEL[settings.risk].toLowerCase()}</li>
+            <li className="pill">{settings.tmi != null ? `TMI ${settings.tmi} %` : "TMI estimée"}</li>
+            <li className="pill">Réponses {DETAIL_LABEL[settings.detail].toLowerCase()}</li>
+          </ul>
+          <button
+            type="button"
+            className={showSettings ? "btn btn-primary" : "btn"}
+            aria-expanded={showSettings}
+            onClick={() => setShowSettings((s) => !s)}
+          >
+            Paramètres
+          </button>
+        </section>
+      )}
+
+      {provider && showSettings && (
+        <AssistantSettingsPanel info={info} onSaved={setInfo} onClose={() => setShowSettings(false)} />
+      )}
+
       {!provider ? (
         <div className="card">
           <h2>À configurer</h2>
@@ -123,12 +175,14 @@ export default function AssistantChat({ provider }: { provider: AssistantProvide
           <ul className="secondary setup-list">
             <li>
               <strong>Gemini</strong> : dans la{" "}
-              <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noreferrer">
+              <a href="https://console.cloud.google.com/" target="_blank" rel="noreferrer">
                 console Google Cloud
               </a>
-              , ouvre un projet où la facturation est activée, puis <em>Identifiants → Créer des identifiants → Clé API</em>{" "}
-              et limite-la à « Generative Language API ».
-              <pre className="code-block">GEMINI_API_KEY=&quot;AIza...&quot;</pre>
+              , dans un projet où la facturation est activée : <em>Agent Platform → Clés API → Créer une clé API</em>,
+              restreinte à « API Agent Platform ».
+              <pre className="code-block">
+                GEMINI_API_KEY=&quot;...&quot;{"\n"}GEMINI_VERTEX=&quot;true&quot;
+              </pre>
             </li>
             <li>
               <strong>Claude</strong> : crée une clé sur{" "}
@@ -166,7 +220,11 @@ export default function AssistantChat({ provider }: { provider: AssistantProvide
                 </div>
               ) : (
                 <div key={i} className="chat-msg assistant">
-                  {m.content ? <Markdown text={m.content} /> : <span className="chat-thinking">Réflexion…</span>}
+                  {m.content ? (
+                    <Markdown text={m.content} />
+                  ) : (
+                    <span className="chat-thinking">{settings.webSearch ? "Analyse et recherche web…" : "Analyse de ta situation…"}</span>
+                  )}
                 </div>
               )
             )}
@@ -217,7 +275,8 @@ export default function AssistantChat({ provider }: { provider: AssistantProvide
 }
 
 // Minimal Markdown: paragraphs, bullet and numbered lists, ### headings,
-// **bold**, _italic_ and `code`. Rendered as React elements, never as HTML.
+// **bold**, _italic_, `code` and https links. Rendered as React elements,
+// never as HTML.
 function Markdown({ text }: { text: string }) {
   const blocks: ReactNode[] = [];
   const lines = text.replace(/\r/g, "").split("\n");
@@ -266,8 +325,16 @@ function Markdown({ text }: { text: string }) {
 }
 
 function inline(text: string): ReactNode {
-  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`|_[^_]+_)/g);
+  const parts = text.split(/(\[[^\]]+\]\(https:\/\/[^)\s]+\)|\*\*[^*]+\*\*|`[^`]+`|_[^_]+_)/g);
   return parts.map((p, i) => {
+    const link = p.match(/^\[([^\]]+)\]\((https:\/\/[^)\s]+)\)$/);
+    if (link) {
+      return (
+        <a key={i} href={link[2]} target="_blank" rel="noreferrer noopener">
+          {link[1]}
+        </a>
+      );
+    }
     if (p.startsWith("**") && p.endsWith("**") && p.length > 4) return <strong key={i}>{p.slice(2, -2)}</strong>;
     if (p.startsWith("`") && p.endsWith("`") && p.length > 2) return <code key={i}>{p.slice(1, -1)}</code>;
     if (p.startsWith("_") && p.endsWith("_") && p.length > 2) return <em key={i}>{p.slice(1, -1)}</em>;

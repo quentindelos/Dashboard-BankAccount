@@ -1,8 +1,8 @@
 import AssistantChat from "@/components/AssistantChat";
-import { assistantProvider } from "@/lib/assistantShared";
+import { loadAssistantInfo } from "@/lib/assistantSettings";
 
 export const dynamic = "force-dynamic";
 
-export default function AssistantPage() {
-  return <AssistantChat provider={assistantProvider(process.env)} />;
+export default async function AssistantPage() {
+  return <AssistantChat initial={await loadAssistantInfo()} />;
 }

@@ -11,21 +11,14 @@ import { ASSET_CLASS_LABELS, findInstrument } from "@/lib/instruments";
 import { categoryMeta, isIncome, isSavings, monthlyEquivalent } from "@/lib/expenses";
 import { loadProjectionSettings } from "@/lib/projectionSettings";
 import { netMonthlyFromGross } from "@/lib/career";
+import { RISK_LABEL, type AssistantSettings } from "@/lib/assistantShared";
 
 const eur = (n: number) => `${Math.round(n).toLocaleString("fr-FR")} €`;
 const eur2 = (n: number) => `${n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
 const pct = (n: number, digits = 1) => `${(n * 100).toLocaleString("fr-FR", { maximumFractionDigits: digits })} %`;
 const signed = (n: number) => (n >= 0 ? "+" : "−") + eur(Math.abs(n));
 
-// What the user told us about themselves (not stored elsewhere in the app).
-const PROFILE = [
-  "Alternant chez Thales, en Master Cloud Computing, Systèmes et Réseaux (Bac+5).",
-  "Diplôme prévu en octobre 2027, puis embauche en CDI chez Thales envisagée.",
-  "Atteint 25 ans en 2029 : le Livret Jeune doit être clôturé au plus tard le 31 décembre 2029.",
-  "Comptes d'investissement chez Trade Republic (PEA, CTO, crypto), livrets au Crédit Mutuel, assurance vie à La Banque Postale.",
-];
-
-export async function buildAssistantContext(now = new Date()): Promise<string> {
+export async function buildAssistantContext(profile: AssistantSettings, now = new Date()): Promise<string> {
   const [data, settings, expenses, projection] = await Promise.all([
     loadPortfolio(),
     getSettings(),
@@ -40,8 +33,18 @@ export async function buildAssistantContext(now = new Date()): Promise<string> {
 
   line(`# Situation financière au ${now.toLocaleDateString("fr-FR", { dateStyle: "full", timeZone: "Europe/Paris" })}`);
   line();
-  line("## Profil");
-  PROFILE.forEach((p) => line(`- ${p}`));
+  line("## Profil et objectifs (renseignés par l'utilisateur)");
+  profile.profile
+    .split("\n")
+    .map((p) => p.trim().replace(/^[-•]\s*/, ""))
+    .filter(Boolean)
+    .forEach((p) => line(`- ${p}`));
+  line(`- Tolérance au risque : ${RISK_LABEL[profile.risk]}`);
+  line(
+    `- Tranche marginale d'imposition (TMI) : ${profile.tmi != null ? `${profile.tmi} %` : "non renseignée, à estimer à partir des revenus"}`
+  );
+  if (profile.horizon.trim()) line(`- Horizon : ${profile.horizon.trim()}`);
+  if (profile.goals.trim()) line(`- Objectifs : ${profile.goals.trim()}`);
   line();
 
   // ---- Accounts

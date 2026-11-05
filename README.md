@@ -116,21 +116,31 @@ suivant) ; les livrets restent en escalier.
 
 ## Conseiller (IA)
 
-La page **Conseiller** répond à tes questions sur tes finances avec Gemini
-(Google) ou Claude (Anthropic). À chaque question, un résumé de ta situation du
-jour (comptes, positions, plus-values, répartition, budget, évolution,
-projection) est envoyé à l'API choisie avec la conversation ; rien n'est stocké
-côté serveur, la conversation reste dans ton navigateur.
+La page **Conseiller** est un conseiller patrimonial IA (Gemini ou Claude) :
+fiscalité française, montages d'optimisation légaux (prise de date PEA/assurance
+vie, purge de plus-values, PER selon la TMI, épargne salariale…), allocation et
+performance, à partir de tes vrais chiffres. À chaque question, un résumé de ta
+situation du jour (profil, comptes, positions, plus-values, répartition,
+budget, évolution, projection) est envoyé à l'API choisie avec la
+conversation ; rien n'est stocké côté serveur, la conversation reste dans ton
+navigateur.
+
+Le bouton **Paramètres** de la page règle le modèle, la profondeur de
+réflexion, la recherche web (vérification des taux et règles du moment, avec
+sources), la longueur des réponses, ton profil d'investisseur (risque, TMI,
+horizon, objectifs, situation) et des consignes libres. Il montre aussi
+exactement ce que reçoit l'IA.
 
 1. Crée une clé API (paiement à l'usage, quelques centimes par question) :
-   - **Gemini** : console Google Cloud → *API et services → Identifiants →
-     Créer des identifiants → Clé API*, dans un projet où la facturation est
-     activée (sinon Google peut utiliser tes données pour améliorer ses
-     produits). Limite la clé à « Generative Language API ».
+   - **Gemini via Google Cloud (Vertex AI)** : console Google Cloud →
+     *Agent Platform → Clés API → Créer une clé API*, restreinte à « API Agent
+     Platform », dans un projet où la facturation est activée.
+   - **Gemini via AI Studio** : clé de https://ai.studio, restreinte à
+     « Generative Language API » (projet prépayé).
    - **Claude** : https://console.anthropic.com/settings/keys
-2. Ajoute-la dans `.env` : `GEMINI_API_KEY="AIza..."` ou
-   `ANTHROPIC_API_KEY="sk-ant-..."` (Gemini est utilisé si les deux sont là ;
-   `GEMINI_MODEL` change le modèle, `gemini-3.8-flash` par défaut).
+2. Ajoute-la dans `.env` : `GEMINI_API_KEY="..."` (plus `GEMINI_VERTEX="true"`
+   pour une clé Google Cloud) ou `ANTHROPIC_API_KEY="sk-ant-..."`. Si les deux
+   sont là, le fournisseur se choisit dans les paramètres.
 3. Redémarre : `docker compose up -d` (ou `npm run dev` en local).
 
 Sans clé, la page explique comment la configurer et le reste de l'app

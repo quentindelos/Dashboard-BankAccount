@@ -1,25 +1,14 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { ApiError as GeminiApiError, GoogleGenAI } from "@google/genai";
+import { ApiError as GeminiApiError, GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { requireAuth } from "@/lib/auth";
 import { buildAssistantContext } from "@/lib/assistantContext";
-import { RESET_MARKER, assistantProvider, type ChatMessage } from "@/lib/assistantShared";
+import { buildInstructions } from "@/lib/assistantPrompt";
+import { assistantSettingsSchema, loadAssistantInfo, saveAssistantSettings } from "@/lib/assistantSettings";
+import { RESET_MARKER, type AssistantProvider, type AssistantSettings, type ChatMessage } from "@/lib/assistantShared";
 
 export const dynamic = "force-dynamic";
-
-const CLAUDE_MODEL = "claude-opus-5-5";
-const GEMINI_MODEL = "gemini-3.8-flash";
-
-const INSTRUCTIONS = `Tu es le conseiller patrimonial personnel de l'utilisateur, intégré à son tableau de bord. Tu tutoies, en français.
-
-Tu reçois plus bas un instantané de sa situation du jour : comptes, positions avec prix de revient, plus-values, répartition, budget mensuel, évolution et hypothèses de projection. Appuie chaque réponse sur ces chiffres : cite les montants, les comptes et les lignes concernés, fais les calculs. Donne des actions concrètes (quoi, combien, sur quel compte, quand) plutôt que des généralités, et explique brièvement pourquoi.
-
-Tiens compte des règles françaises qui s'appliquent : plafonds et taux des livrets, PEA (plafond de versements, fiscalité avant et après 5 ans), CTO (prélèvement forfaitaire), assurance vie (avantages après 8 ans), Livret Jeune à clôturer à 25 ans, prélèvement à la source. Si une règle ou un taux a pu changer récemment, dis-le.
-
-Si une donnée manque pour répondre (par exemple un objectif, un horizon, une date), dis ce qui manque et propose une réponse sous une hypothèse que tu annonces. N'invente jamais de montant absent de l'instantané. Quand une décision comporte un risque (concentration, crypto, horizon court), dis-le simplement.
-
-Format : réponses courtes et lisibles. Paragraphes brefs, listes à puces, **gras** pour les chiffres clés. Pas de tableaux ni de titres de plus de 3 niveaux. Pas de formule de politesse ni de rappel générique en fin de réponse.`;
 
 const bodySchema = z.object({
   messages: z
@@ -31,23 +20,44 @@ const bodySchema = z.object({
 
 type Send = (text: string) => void;
 
+interface Run {
+  provider: AssistantProvider;
+  model: string;
+  settings: AssistantSettings;
+  instructions: string;
+  context: string;
+}
+
+async function prepare(): Promise<Run | null> {
+  const { settings, provider, model } = await loadAssistantInfo();
+  if (!provider || !model) return null;
+  return {
+    provider,
+    model,
+    settings,
+    instructions: buildInstructions(settings, settings.webSearch),
+    context: await buildAssistantContext(settings),
+  };
+}
+
 let anthropic: Anthropic | null = null;
 let gemini: GoogleGenAI | null = null;
 
-async function streamClaude(messages: ChatMessage[], context: string, send: Send, signal: AbortSignal) {
+async function streamClaude(run: Run, messages: ChatMessage[], send: Send, signal: AbortSignal) {
   anthropic ??= new Anthropic();
   const stream = anthropic.beta.messages.stream(
     {
-      model: CLAUDE_MODEL,
+      model: run.model,
       max_tokens: 16000,
-      output_config: { effort: "medium" },
+      output_config: { effort: run.settings.thinking },
       // On a safety decline, retry on the model Anthropic recommends.
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
+      ...(run.settings.webSearch ? { tools: [{ type: "web_search_20250305" as const, name: "web_search" as const, max_uses: 5 }] } : {}),
       system: [
-        { type: "text", text: INSTRUCTIONS },
+        { type: "text", text: run.instructions },
         // Cached: follow-up questions reuse the same snapshot.
-        { type: "text", text: context, cache_control: { type: "ephemeral" } },
+        { type: "text", text: run.context, cache_control: { type: "ephemeral" } },
       ],
       messages,
     },
@@ -60,49 +70,91 @@ async function streamClaude(messages: ChatMessage[], context: string, send: Send
   const final = await stream.finalMessage();
   if (final.stop_reason === "refusal") send("\n\n_Je ne peux pas répondre à cette demande._");
   else if (final.stop_reason === "max_tokens") send("\n\n_(Réponse coupée : trop longue.)_");
+  else if (final.stop_reason === "pause_turn") send("\n\n_(Recherche interrompue : repose la question pour continuer.)_");
 }
 
-async function streamGemini(messages: ChatMessage[], context: string, send: Send, signal: AbortSignal) {
+const GEMINI_THINKING = { low: ThinkingLevel.LOW, medium: ThinkingLevel.MEDIUM, high: ThinkingLevel.HIGH } as const;
+
+async function streamGemini(run: Run, messages: ChatMessage[], send: Send, signal: AbortSignal) {
   // GEMINI_VERTEX=true: Vertex AI on Google Cloud (billed to the Cloud billing
   // account) with a Vertex AI API key, instead of the AI Studio Gemini API.
   gemini ??= new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY, vertexai: process.env.GEMINI_VERTEX === "true" });
   const stream = await gemini.models.generateContentStream({
-    model: process.env.GEMINI_MODEL || GEMINI_MODEL,
+    model: run.model,
     contents: messages.map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] })),
-    config: { systemInstruction: `${INSTRUCTIONS}\n\n${context}`, maxOutputTokens: 16000, abortSignal: signal },
+    config: {
+      systemInstruction: `${run.instructions}\n\n${run.context}`,
+      maxOutputTokens: 16000,
+      thinkingConfig: { thinkingLevel: GEMINI_THINKING[run.settings.thinking] },
+      tools: run.settings.webSearch ? [{ googleSearch: {} }] : undefined,
+      abortSignal: signal,
+    },
   });
   let finish: string | undefined;
+  const sources = new Map<string, string>();
   for await (const chunk of stream) {
-    const text = chunk.candidates?.[0]?.content?.parts
+    const candidate = chunk.candidates?.[0];
+    const text = candidate?.content?.parts
       ?.filter((p) => p.text && !p.thought)
       .map((p) => p.text)
       .join("");
     if (text) send(text);
-    finish = chunk.candidates?.[0]?.finishReason ?? finish;
+    for (const g of candidate?.groundingMetadata?.groundingChunks ?? []) {
+      if (g.web?.uri && /^https:\/\//.test(g.web.uri)) sources.set(g.web.uri, g.web.title || g.web.domain || "source");
+    }
+    finish = candidate?.finishReason ?? finish;
+  }
+  if (sources.size > 0) {
+    const links = [...sources].slice(0, 8).map(([uri, title]) => `- [${title.replace(/[[\]]/g, "")}](${uri})`);
+    send(`\n\n**Sources consultées**\n${links.join("\n")}`);
   }
   if (finish === "MAX_TOKENS") send("\n\n_(Réponse coupée : trop longue.)_");
   else if (finish && finish !== "STOP") send("\n\n_Je ne peux pas répondre à cette demande._");
 }
 
-function errorText(err: unknown): string {
+function errorText(err: unknown, run: Run): string {
   if (err instanceof Anthropic.AuthenticationError) return "La clé API Anthropic est refusée : vérifie ANTHROPIC_API_KEY dans le fichier .env.";
   if (err instanceof Anthropic.PermissionDeniedError) return "Cette clé API Anthropic n'a pas accès au modèle.";
+  if (err instanceof Anthropic.NotFoundError) return `Modèle Claude introuvable (${run.model}) : choisis-en un autre dans les paramètres.`;
   if (err instanceof Anthropic.RateLimitError) return "Trop de demandes pour le moment, réessaie dans une minute.";
   if (err instanceof Anthropic.APIConnectionError) return "Impossible de joindre Anthropic : vérifie la connexion internet.";
   if (err instanceof Anthropic.APIError) return `Erreur du service Anthropic (${err.status ?? "?"}). Réessaie plus tard.`;
   if (err instanceof GeminiApiError) {
     if (err.status === 400 && /api.?key/i.test(err.message)) return "La clé API Gemini est refusée : vérifie GEMINI_API_KEY dans le fichier .env.";
+    if (err.status === 400 && /search|grounding|tool/i.test(err.message))
+      return "La recherche web n'est pas disponible avec ce modèle : désactive-la dans les paramètres.";
     if (err.status === 402) return "Crédit Gemini épuisé : recharge le projet Google dans AI Studio (https://ai.studio/projects → Facturation).";
     if (err.status === 403) {
       return process.env.GEMINI_VERTEX === "true"
         ? "Cette clé n'a pas accès à Vertex AI : active « Vertex AI API » dans le projet et autorise-la dans les restrictions de la clé."
         : "Cette clé Google n'a pas accès à l'API Gemini (« Generative Language API ») : vérifie ses restrictions dans la console Google Cloud.";
     }
-    if (err.status === 404) return `Modèle Gemini introuvable (${process.env.GEMINI_MODEL || GEMINI_MODEL}).`;
+    if (err.status === 404) return `Modèle Gemini introuvable (${run.model}) : choisis-en un autre dans les paramètres.`;
     if (err.status === 429) return "Quota Gemini atteint, réessaie dans une minute.";
     return `Erreur du service Gemini (${err.status}). Réessaie plus tard.`;
   }
   return "Erreur inattendue.";
+}
+
+// Settings and exactly what the assistant receives (shown in its settings panel).
+export async function GET() {
+  await requireAuth();
+  const info = await loadAssistantInfo();
+  return NextResponse.json({
+    ...info,
+    instructions: buildInstructions(info.settings, info.settings.webSearch),
+    context: await buildAssistantContext(info.settings),
+  });
+}
+
+export async function PUT(request: NextRequest) {
+  await requireAuth();
+  const parsed = assistantSettingsSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Paramètres invalides" }, { status: 400 });
+  }
+  await saveAssistantSettings(parsed.data);
+  return GET();
 }
 
 // Chat with the assistant: the conversation so far in, the answer streamed
@@ -110,26 +162,25 @@ function errorText(err: unknown): string {
 export async function POST(request: NextRequest) {
   await requireAuth();
 
-  const provider = assistantProvider(process.env);
-  if (!provider) return NextResponse.json({ error: "missing_key" }, { status: 503 });
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Requête invalide" }, { status: 400 });
   }
+  const run = await prepare();
+  if (!run) return NextResponse.json({ error: "missing_key" }, { status: 503 });
 
-  const context = await buildAssistantContext();
   const encoder = new TextEncoder();
   const abort = new AbortController();
   const body = new ReadableStream<Uint8Array>({
     async start(controller) {
       const send: Send = (text) => controller.enqueue(encoder.encode(text));
       try {
-        const run = provider === "gemini" ? streamGemini : streamClaude;
-        await run(parsed.data.messages, context, send, abort.signal);
+        const stream = run.provider === "gemini" ? streamGemini : streamClaude;
+        await stream(run, parsed.data.messages, send, abort.signal);
       } catch (err) {
         if (!abort.signal.aborted) {
           console.error("assistant:", err);
-          send(`\n\n_${errorText(err)}_`);
+          send(`\n\n_${errorText(err, run)}_`);
         }
       }
       if (!abort.signal.aborted) controller.close();

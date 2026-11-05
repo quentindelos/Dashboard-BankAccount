@@ -1533,7 +1533,7 @@ tbody tr:last-child td {
   flex-direction: column;
   gap: 14px;
   min-height: 280px;
-  max-height: calc(100vh - 330px);
+  max-height: calc(100vh - 420px);
   overflow-y: auto;
   padding: 2px;
 }
@@ -1685,4 +1685,159 @@ tbody tr:last-child td {
 
 .setup-list .code-block {
   margin: 6px 0 0;
+}
+
+/* ---------- Assistant: agent card and settings ---------- */
+.agent-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 16px 18px;
+}
+
+.agent-id {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.agent-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+}
+
+.agent-name {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.agent-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.agent-status::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--success);
+}
+
+.agent-model {
+  font-size: 13px;
+}
+
+.agent-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.agent-badges .pill {
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.assistant-settings h3 {
+  margin-top: 18px;
+}
+
+.assistant-settings-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.assistant-settings-head h2 {
+  margin: 0;
+}
+
+.assistant-settings textarea {
+  resize: vertical;
+  font: inherit;
+}
+
+.field-hint {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.check-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+  cursor: pointer;
+}
+
+.check-row input {
+  margin-top: 3px;
+}
+
+.assistant-settings-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.prompt-preview {
+  margin-top: 20px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+
+.prompt-preview summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.prompt-preview .field-hint {
+  margin: 8px 0 0;
+}
+
+.prompt-preview pre {
+  max-height: 360px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  margin: 0;
+}
+
+.md a {
+  color: var(--link, var(--accent));
+}
+
+@media (max-width: 640px) {
+  .agent-card > .btn {
+    width: 100%;
+  }
 }
