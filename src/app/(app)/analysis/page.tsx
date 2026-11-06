@@ -5,6 +5,7 @@ import { getSettings } from "@/lib/settings";
 import { accountTypeCssVar } from "@/lib/accountTypes";
 import { companyLogo } from "@/lib/logos";
 import Logo from "@/components/Logo";
+import AnimatedNumber from "@/components/AnimatedNumber";
 import { AdviceList, Allocation, HBars, RiskMeter, assetClassColor, eur0, formatPct, riskLabel, signed } from "@/components/ui";
 
 export default async function AnalysisPage() {
@@ -50,17 +51,17 @@ export default async function AnalysisPage() {
         </div>
         <div className="card stat-tile">
           <span className="label">Volatilité du patrimoine total</span>
-          <span className="value">~{formatPct(a.volatility, 0)}</span>
+          <span className="value"><AnimatedNumber value={a.volatility} format="pct0" prefix="~" /></span>
           <span className="hint">Livrets et fonds euros amortissent les placements</span>
         </div>
         <div className="card stat-tile">
           <span className="label">Part en actions</span>
-          <span className="value">{formatPct(equityShare, 0)}</span>
+          <span className="value"><AnimatedNumber value={equityShare} format="pct0" /></span>
           <span className="hint">{eur0.format(a.equity)} du patrimoine</span>
         </div>
         <div className="card stat-tile">
           <span className="label">Exposition au dollar</span>
-          <span className="value">{formatPct(usd, 0)}</span>
+          <span className="value"><AnimatedNumber value={usd} format="pct0" /></span>
           <span className="hint">Actifs US, or et crypto, sans couverture de change</span>
         </div>
         {worst && (

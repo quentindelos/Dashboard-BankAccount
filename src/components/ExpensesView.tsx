@@ -19,6 +19,7 @@ import {
   type ExpenseRow,
 } from "@/lib/expenses";
 import { Allocation, eur0, eur2, formatPct } from "@/components/ui";
+import AnimatedNumber from "@/components/AnimatedNumber";
 import CashflowSankey from "@/components/CashflowSankey";
 
 const MONTHS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
@@ -192,7 +193,7 @@ export default function ExpensesView({
         <div className="card stat-tile">
           <span className="kpi-icon" aria-hidden="true">💼</span>
           <span className="label">Revenus par mois</span>
-          <span className="value">{eur0.format(income)}</span>
+          <span className="value"><AnimatedNumber value={income} /></span>
           <span className="hint">
             {income > 0 ? `Taux d'épargne ${formatPct(savings / income, 0)} · reste ${eur0.format(income - outflow)}` : "Ajoute ton salaire pour voir ton cashflow"}
           </span>
@@ -200,19 +201,19 @@ export default function ExpensesView({
         <div className="card stat-tile">
           <span className="kpi-icon" aria-hidden="true">💸</span>
           <span className="label">Charges par mois</span>
-          <span className="value">{eur0.format(monthly)}</span>
+          <span className="value"><AnimatedNumber value={monthly} /></span>
           <span className="hint">Hors épargne · base du matelas de sécurité</span>
         </div>
         <div className="card stat-tile">
           <span className="kpi-icon" aria-hidden="true">🐷</span>
           <span className="label">Épargne par mois</span>
-          <span className="value">{eur0.format(savings)}</span>
+          <span className="value"><AnimatedNumber value={savings} /></span>
           <span className="hint">{savings > 0 ? `${formatPct(savings / outflow)} de ce qui sort chaque mois` : "Ajoute tes virements vers livrets, PEA..."}</span>
         </div>
         <div className="card stat-tile">
           <span className="kpi-icon" aria-hidden="true">⏳</span>
           <span className="label">Reste à payer ce mois</span>
-          <span className="value">{eur0.format(remainingTotal)}</span>
+          <span className="value"><AnimatedNumber value={remainingTotal} /></span>
           <span className="hint">
             {remaining.length} prélèvement{remaining.length > 1 ? "s" : ""} à venir · {eur0.format(paidTotal)} déjà passés
           </span>
@@ -288,13 +289,23 @@ export default function ExpensesView({
 
       {/* ---- All charges, as a monthly cashflow ---- */}
       {expenses.length > 0 && (
-        <section className="card section">
-          <h2>Toutes mes charges</h2>
-          <p className="muted" style={{ marginTop: -6, fontSize: 13 }}>
+        <details className="card section charges-panel">
+          <summary>
+            <span className="charges-panel-title">
+              <h2>Toutes mes charges</h2>
+              <span className="muted">
+                {expenses.length} ligne{expenses.length > 1 ? "s" : ""} · {eur0.format(outflow)} de sorties par mois
+              </span>
+            </span>
+            <svg className="charges-panel-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </summary>
+          <p className="muted" style={{ fontSize: 13 }}>
             Ce qui sort chaque mois. Les paiements du même nom sont réunis sur une ligne : clique dessus pour voir le détail.
           </p>
           <CashflowTable expenses={expenses} onEdit={openEdit} onToggle={toggleActive} />
-        </section>
+        </details>
       )}
 
       {/* ---- Add / edit modal ---- */}

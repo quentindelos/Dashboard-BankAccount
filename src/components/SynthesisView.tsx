@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import AnimatedNumber from "@/components/AnimatedNumber";
 import TimeSeriesChart, {
   RangeTabs,
   ZoomHint,
@@ -91,7 +92,7 @@ export default function SynthesisView({
       <div className="grid grid-main">
         {/* ---- Net worth hero ---- */}
         <section className="card hero">
-          <div className="hero-value">{eur0.format(total)}</div>
+          <div className="hero-value"><AnimatedNumber value={total} duration={900} /></div>
           {netChange ? (
             investedGain ? (
               <Delta value={investedGain.change} pct={investedGain.pct} />
@@ -177,7 +178,7 @@ export default function SynthesisView({
           <section className="card stat-tile">
             <span className="kpi-icon" aria-hidden="true">🛟</span>
             <span className="label">Matelas de sécurité</span>
-            <span className="value">{eur0.format(cushion.amount)}</span>
+            <span className="value"><AnimatedNumber value={cushion.amount} /></span>
             {cushion.accounts.length === 0 ? (
               <span className="hint">
                 <Link href="/expenses">Choisis le livret qui sert de matelas</Link>

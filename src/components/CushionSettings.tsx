@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { accountTypeLabel } from "@/lib/accountTypes";
 import { eur0 } from "@/components/ui";
+import AnimatedNumber from "@/components/AnimatedNumber";
 import { cushionProjection, type ExpenseRow } from "@/lib/expenses";
 
 type Transfer = Pick<ExpenseRow, "amount" | "frequency" | "startMonth" | "dayOfMonth"> & { accountId: string };
@@ -103,7 +104,7 @@ export default function CushionSettings({
           <CushionRing covered={covered} months={months} />
           <div className="stat-tile">
             <span className="value">
-              {eur0.format(amount)}
+              <AnimatedNumber value={amount} />
               <span className="secondary" style={{ fontSize: 15, fontWeight: 500 }}> / {eur0.format(target)}</span>
             </span>
             <span className="hint">Sur {sources.length > 0 ? sources.map((a) => a.name).join(", ") : "aucun compte (⚙)"}</span>
@@ -130,7 +131,7 @@ export default function CushionSettings({
         </div>
       ) : (
         <div className="stat-tile" style={{ marginBottom: 14 }}>
-          <span className="value">{eur0.format(amount)}</span>
+          <span className="value"><AnimatedNumber value={amount} /></span>
           <span className="hint">Ajoute tes charges dans le calendrier pour calculer l'objectif.</span>
         </div>
       )}
@@ -203,7 +204,15 @@ function CushionRing({ covered, months }: { covered: number; months: number }) {
               <title>{`Mois ${i + 1} : ${fill >= 1 ? "atteint" : fill > 0 ? `${Math.round(fill * 100)} %` : "à constituer"}`}</title>
               <path d={arc(start, end)} fill="none" stroke="var(--surface-3)" strokeWidth={stroke} />
               {fill > 0 && (
-                <path d={arc(start, start + (end - start) * fill)} fill="none" stroke={done ? "var(--good)" : "var(--accent)"} strokeWidth={stroke} />
+                <path
+                  className="ring-fill"
+                  pathLength={1}
+                  style={{ animationDelay: `${i * 90}ms` }}
+                  d={arc(start, start + (end - start) * fill)}
+                  fill="none"
+                  stroke={done ? "var(--good)" : "var(--accent)"}
+                  strokeWidth={stroke}
+                />
               )}
             </g>
           );

@@ -59,15 +59,17 @@ const assistantIcon = (
   </svg>
 );
 
-const links = [
+const links: { href: string; label: string; icon: React.ReactNode; tag?: string; title?: string }[] = [
   { href: "/dashboard", label: "Synthèse", icon: icons.synthese },
   { href: "/accounts", label: "Comptes", icon: icons.comptes },
   { href: "/expenses", label: "Dépenses", icon: depensesIcon },
   { href: "/analysis", label: "Analyse", icon: icons.analyse },
   { href: "/projection", label: "Projection", icon: projectionIcon },
-  { href: "/assistant", label: "Conseiller", icon: assistantIcon },
-  { href: "/settings", label: "Réglages", icon: icons.reglages },
+  { href: "/assistant", label: "Conseiller", icon: assistantIcon, tag: "Agent IA", title: "Conseiller : ton agent IA" },
 ];
+
+// App settings sit apart, at the bottom of the sidebar.
+const settingsLink = { href: "/settings", label: "Réglages", icon: icons.reglages };
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -111,13 +113,20 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <Link href="/dashboard" className="brand">
-        <span className="brand-mark">P</span>
+        <span className="brand-mark" aria-hidden="true">
+          <svg width="30" height="30" viewBox="0 0 32 32" fill="currentColor">
+            <path d="M6 25 V21 C10 21 11.5 16 15.5 16 C19.5 16 20.5 9.5 25 8.5 V25 Z" opacity="0.3" />
+            <path d="M6 21 C10 21 11.5 16 15.5 16 C19.5 16 20.5 9.5 25 8.5" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
+            <circle cx="25" cy="8.5" r="2.8" />
+          </svg>
+        </span>
         <span className="brand-name">Patrimoine</span>
       </Link>
       {links.map((l) => (
-        <Link key={l.href} href={l.href} className={`nav-link${pathname.startsWith(l.href) ? " active" : ""}`} title={l.label}>
+        <Link key={l.href} href={l.href} className={`nav-link${pathname.startsWith(l.href) ? " active" : ""}`} title={l.title ?? l.label}>
           {l.icon}
           <span className="nav-label">{l.label}</span>
+          {l.tag && <span className="nav-tag">{l.tag}</span>}
           {l.href === "/dashboard" && due > 0 && (
             <span className="nav-badge" title={`${due} élément${due > 1 ? "s" : ""} à mettre à jour`}>
               {due}
@@ -126,6 +135,14 @@ export default function Sidebar() {
         </Link>
       ))}
       <div className="sidebar-footer">
+        <Link
+          href={settingsLink.href}
+          className={`nav-link${pathname.startsWith(settingsLink.href) ? " active" : ""}`}
+          title={settingsLink.label}
+        >
+          {settingsLink.icon}
+          <span className="nav-label">{settingsLink.label}</span>
+        </Link>
         {username && (
           <div className="user-chip">
             <span className="avatar">{username.slice(0, 2).toUpperCase()}</span>

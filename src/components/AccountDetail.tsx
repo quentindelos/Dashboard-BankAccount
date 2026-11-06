@@ -15,6 +15,7 @@ import TimeSeriesChart, {
   type Zoom,
 } from "@/components/TimeSeriesChart";
 import { Delta, eur0, formatPct, signed } from "@/components/ui";
+import AnimatedNumber from "@/components/AnimatedNumber";
 import Logo from "@/components/Logo";
 import type { LogoKey } from "@/lib/logos";
 
@@ -180,7 +181,7 @@ export default function AccountDetail({
           <Logo logo={account.logo} name={account.institution ?? account.name} size={30} />
           {account.name}
         </h1>
-        <div className="hero-value" style={{ fontSize: 34 }}>{eur0.format(latestValue)}</div>
+        <div className="hero-value" style={{ fontSize: 34 }}><AnimatedNumber value={latestValue} /></div>
         {period && (
           <Delta value={period.change} pct={period.pct} />
         )}

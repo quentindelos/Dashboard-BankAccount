@@ -5,6 +5,7 @@ import { Area, CartesianGrid, ComposedChart, Line, ReferenceLine, ResponsiveCont
 import { project, type ProjectionAccount, type ProjectionRow } from "@/lib/projection";
 import { useChartTheme } from "@/lib/useChartTheme";
 import { eur0, formatPct } from "@/components/ui";
+import AnimatedNumber from "@/components/AnimatedNumber";
 import {
   THALES_GRADUATE_RANGE,
   careerExtra,
@@ -186,9 +187,9 @@ export default function ProjectionView({
           Dans {years} ans · {endLabel}
           {` · en euros d'aujourd'hui (inflation ${formatPct(inflation, 0)}/an déduite)`}
         </div>
-        <div className="hero-value">{eur0.format(end.total)}</div>
+        <div className="hero-value"><AnimatedNumber value={end.total} /></div>
         <span className="muted" style={{ fontSize: 13 }}>
-          Fourchette probable : de {eur0.format(end.low)} à {eur0.format(end.high)}
+          Fourchette probable : de <AnimatedNumber value={end.low} /> à <AnimatedNumber value={end.high} />
         </span>
         {withoutCareer !== null && careerFrom && (
           <div className="muted" style={{ fontSize: 13, marginTop: 2 }}>

@@ -218,6 +218,7 @@ h3 {
   }
   .brand-name,
   .nav-label,
+  .nav-tag,
   .user-chip {
     display: none;
   }
@@ -2247,5 +2248,212 @@ tbody tr:last-child td {
 @media (hover: none) {
   .chart-hint {
     display: none;
+  }
+}
+
+/* ---------- Collapsible "Toutes mes charges" panel ---------- */
+.charges-panel > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.charges-panel > summary::-webkit-details-marker {
+  display: none;
+}
+
+.charges-panel-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.charges-panel-title h2 {
+  margin: 0;
+}
+
+.charges-panel-title .muted {
+  font-size: 13px;
+}
+
+.charges-panel-chevron {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  transition: transform 0.2s ease;
+}
+
+.charges-panel[open] .charges-panel-chevron {
+  transform: rotate(180deg);
+}
+
+.charges-panel[open] > summary {
+  margin-bottom: 12px;
+}
+
+/* Small tag next to a menu label (e.g. "Agent IA") */
+.nav-tag {
+  margin-left: auto;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--accent-bg);
+  color: var(--accent-ink);
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---------- Motion ---------- */
+/* Short, soft transitions: elements arrive, bars grow, numbers roll
+   (see AnimatedNumber). Everything is turned off for reduced motion. */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes grow-x {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes reveal-x {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes ring-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Cards and page headers slide in, one after the other inside a grid. */
+.card,
+.page-header {
+  animation: rise-in 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.grid > .card:nth-child(2) { animation-delay: 50ms; }
+.grid > .card:nth-child(3) { animation-delay: 100ms; }
+.grid > .card:nth-child(4) { animation-delay: 150ms; }
+.grid > .card:nth-child(5) { animation-delay: 200ms; }
+.grid > .card:nth-child(n + 6) { animation-delay: 250ms; }
+
+/* Rolling numbers: fixed-width digits so the text does not jitter, and a
+   short green or red tint when the value goes up or down. */
+.anim-number {
+  font-variant-numeric: tabular-nums;
+  transition: color 0.6s ease;
+}
+
+.anim-number-up {
+  color: var(--good);
+}
+
+.anim-number-down {
+  color: var(--critical);
+}
+
+/* Bars grow from the left on display, and slide when their value changes. */
+.seg-bar {
+  animation: reveal-x 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.seg-bar span {
+  transition: flex-grow 0.5s ease;
+}
+
+.hbar,
+.weight-track span {
+  transform-origin: left center;
+  animation: grow-x 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  transition: width 0.5s ease;
+}
+
+.risk-meter span {
+  transition: background-color 0.4s ease;
+}
+
+.ring-fill {
+  stroke-dasharray: 1;
+  animation: ring-draw 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* Buttons and menu links. */
+.btn,
+.nav-link {
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Modal and folding panel. */
+.modal-backdrop {
+  animation: fade-in 0.2s ease both;
+}
+
+.modal-backdrop .modal {
+  animation: rise-in 0.25s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.charges-panel[open] > :not(summary) {
+  animation: rise-in 0.3s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .page-header,
+  .seg-bar,
+  .hbar,
+  .weight-track span,
+  .ring-fill,
+  .modal-backdrop,
+  .modal-backdrop .modal,
+  .charges-panel[open] > :not(summary) {
+    animation: none;
+  }
+
+  .anim-number,
+  .seg-bar span,
+  .hbar,
+  .weight-track span,
+  .risk-meter span,
+  .btn,
+  .nav-link {
+    transition: none;
+  }
+
+  .btn:active:not(:disabled) {
+    transform: none;
   }
 }

@@ -2,6 +2,7 @@
 // pages. No hooks: usable from server and client components alike.
 
 import Link from "next/link";
+import AnimatedNumber from "@/components/AnimatedNumber";
 import type { Advice, AdviceLevel, Slice } from "@/lib/analysis";
 
 export const eur0 = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
@@ -19,7 +20,9 @@ export function Delta({ value, pct, suffix }: { value: number; pct?: number | nu
   const cls = value > 0 ? "pos" : value < 0 ? "neg" : "";
   return (
     <span className="delta">
-      <span className={cls}>{signed(value, (n) => eur0.format(n))}</span>
+      <span className={cls}>
+        <AnimatedNumber value={Math.abs(value)} prefix={value > 0 ? "+" : value < 0 ? "−" : ""} />
+      </span>
       {pct !== undefined && pct !== null && Number.isFinite(pct) && (
         <span className={`pill ${cls}`}>
           {value >= 0 ? "▲" : "▼"} {formatPct(Math.abs(pct), 2)}
