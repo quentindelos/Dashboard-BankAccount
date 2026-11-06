@@ -197,7 +197,7 @@ export default function AssistantChat({ initial }: { initial: AssistantInfo }) {
         <div>
           <h1>Conseiller</h1>
           <p className="muted">
-            Ton conseiller patrimonial : fiscalité, enveloppes, allocation et performance, à partir de tes vrais chiffres.
+            Ton conseiller patrimonial : fiscalité, enveloppes, allocation et performance, à partir de tes chiffres.
           </p>
         </div>
         {provider && (
@@ -263,7 +263,7 @@ export default function AssistantChat({ initial }: { initial: AssistantInfo }) {
               <a href="https://console.cloud.google.com/" target="_blank" rel="noreferrer">
                 console Google Cloud
               </a>
-              , dans un projet où la facturation est activée : <em>Agent Platform → Clés API → Créer une clé API</em>,
+              , dans un projet où la facturation est activée : <em>Agent Platform &gt; Clés API &gt; Créer une clé API</em>,
               restreinte à « API Agent Platform ».
               <pre className="code-block">
                 GEMINI_API_KEY=&quot;...&quot;{"\n"}GEMINI_VERTEX=&quot;true&quot;
@@ -322,7 +322,7 @@ export default function AssistantChat({ initial }: { initial: AssistantInfo }) {
         </aside>
         <section className="card chat">
           <div className="chat-log" aria-live="polite">
-            {loading && <p className="muted">Chargement…</p>}
+            {loading && <p className="muted">Chargement...</p>}
             {messages.length === 0 && !loading && (
               <div className="chat-empty">
                 <p className="muted">Quelques idées pour commencer :</p>
@@ -350,7 +350,7 @@ export default function AssistantChat({ initial }: { initial: AssistantInfo }) {
                   {m.content ? (
                     <Markdown text={m.content} />
                   ) : busy && i === messages.length - 1 ? (
-                    <span className="chat-thinking">{settings.webSearch ? "Analyse et recherche web…" : "Analyse de ta situation…"}</span>
+                    <span className="chat-thinking">{settings.webSearch ? "Analyse et recherche web..." : "Analyse de ta situation..."}</span>
                   ) : null}
                 </div>
               )
@@ -376,7 +376,7 @@ export default function AssistantChat({ initial }: { initial: AssistantInfo }) {
                   ask(input);
                 }
               }}
-              placeholder="Ta question…"
+              placeholder="Ta question..."
               rows={2}
               maxLength={8000}
               aria-label="Ta question"

@@ -103,10 +103,10 @@ export default function SettingsPanel() {
         </p>
         {importError && <p className="error-text">{importError}</p>}
         {importMessage && <p className="success-text">{importMessage}</p>}
-        {importLoading && <p className="muted" style={{ fontSize: 13 }}>Lecture et enregistrement du fichier… quelques secondes.</p>}
+        {importLoading && <p className="muted" style={{ fontSize: 13 }}>Lecture et enregistrement du fichier... quelques secondes.</p>}
         <input ref={fileInputRef} type="file" accept="application/json" onChange={handleImport} disabled={importLoading} style={{ display: "none" }} />
         <button className="btn btn-primary" type="button" disabled={importLoading} onClick={() => fileInputRef.current?.click()}>
-          {importLoading ? "Import en cours…" : "Choisir un fichier JSON"}
+          {importLoading ? "Import en cours..." : "Choisir un fichier JSON"}
         </button>
       </div>
 

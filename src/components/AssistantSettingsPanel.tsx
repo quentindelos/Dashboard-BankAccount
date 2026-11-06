@@ -39,7 +39,7 @@ const RISK_HINT = {
   aggressive: "maximum d'actions, accepte -50 % en crise",
 };
 
-const tokens = (text: string) => `≈ ${Math.round(text.length / 3.5).toLocaleString("fr-FR")} tokens`;
+const tokens = (text: string) => `environ ${Math.round(text.length / 3.5).toLocaleString("fr-FR")} tokens`;
 
 interface Memory {
   id: number;
@@ -93,7 +93,7 @@ function MemoryList({ version }: { version: number }) {
         utilise dans chaque réponse.
       </p>
       {memories === null ? (
-        <p className="muted">Chargement…</p>
+        <p className="muted">Chargement...</p>
       ) : memories.length === 0 ? (
         <p className="muted">Rien pour l'instant : parle-lui de ta situation, il retiendra l'essentiel.</p>
       ) : (
@@ -303,7 +303,7 @@ export default function AssistantSettingsPanel({
                 {m.label} : {m.hint}
               </option>
             ))}
-            <option value={CUSTOM}>Autre modèle…</option>
+            <option value={CUSTOM}>Autre modèle...</option>
           </select>
           {modelValue === CUSTOM && (
             <input
@@ -389,7 +389,7 @@ export default function AssistantSettingsPanel({
           id="as-goals"
           rows={3}
           maxLength={2000}
-          placeholder="Ex. : apport de 30 000 € pour un achat en 2030, indépendance financière à 50 ans…"
+          placeholder="Ex. : apport de 30 000 € pour un achat en 2030, indépendance financière à 50 ans..."
           value={form.goals}
           onChange={(e) => set("goals", e.target.value)}
         />
@@ -400,12 +400,12 @@ export default function AssistantSettingsPanel({
           id="as-profile"
           rows={5}
           maxLength={4000}
-          placeholder="Situation familiale, rattachement fiscal, épargne salariale Thales, projets…"
+          placeholder="Situation familiale, rattachement fiscal, épargne salariale Thales, projets..."
           value={form.profile}
           onChange={(e) => set("profile", e.target.value)}
         />
         <span className="field-hint">
-          Plus il en sait (situation familiale, rattachement au foyer des parents, PEE Thales et abondement…), plus ses montages
+          Plus il en sait (situation familiale, rattachement au foyer des parents, PEE Thales et abondement...), plus ses montages
           sont précis.
         </span>
       </div>
@@ -415,7 +415,7 @@ export default function AssistantSettingsPanel({
           id="as-instructions"
           rows={3}
           maxLength={4000}
-          placeholder="Ex. : pas de nouvelle crypto, je veux garder TotalEnergies, toujours chiffrer l'impôt économisé…"
+          placeholder="Ex. : pas de nouvelle crypto, je veux garder TotalEnergies, toujours chiffrer l'impôt économisé..."
           value={form.instructions}
           onChange={(e) => set("instructions", e.target.value)}
         />
@@ -424,7 +424,7 @@ export default function AssistantSettingsPanel({
       {status && <p className={status.kind === "ok" ? "success-text" : "error-text"}>{status.text}</p>}
       <div className="assistant-settings-actions">
         <button type="submit" className="btn btn-primary" disabled={saving}>
-          {saving ? "Enregistrement…" : "Enregistrer"}
+          {saving ? "Enregistrement..." : "Enregistrer"}
         </button>
         <button
           type="button"
@@ -451,7 +451,7 @@ export default function AssistantSettingsPanel({
           ne quitte ton serveur.
         </p>
         {previewError && <p className="error-text">{previewError}</p>}
-        {!preview && !previewError && <p className="muted">Chargement…</p>}
+        {!preview && !previewError && <p className="muted">Chargement...</p>}
         {preview && (
           <>
             <h3>

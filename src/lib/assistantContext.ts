@@ -65,7 +65,7 @@ export async function buildAssistantContext(profile: AssistantSettings, now = ne
     const g = gains.accounts.find((x) => x.id === a.id);
     const opened = data.series.find((p) => (p.byAccount[a.id] ?? 0) > 0)?.date;
     const parts = [
-      `${a.name} — ${accountTypeLabel(a.type)}${a.institution ? `, ${a.institution}` : ""}`,
+      `${a.name} (${accountTypeLabel(a.type)}${a.institution ? `, ${a.institution}` : ""})`,
       `valeur ${eur(value)}`,
       opened ? `premier relevé ${opened}` : null,
       g?.invested != null ? `investi ${eur(g.invested)}` : null,
@@ -76,7 +76,7 @@ export async function buildAssistantContext(profile: AssistantSettings, now = ne
   }
   line(
     `- Total : investi ${eur(gains.invested)}, plus-value ${signed(gains.gain)}${gains.pct != null ? ` (${pct(gains.pct)})` : ""}` +
-      (gains.missing.length ? ` — versements inconnus pour : ${gains.missing.map((m) => m.name).join(", ")}` : "")
+      (gains.missing.length ? `. Versements inconnus pour : ${gains.missing.map((m) => m.name).join(", ")}` : "")
   );
   line();
 
@@ -166,7 +166,7 @@ export async function buildAssistantContext(profile: AssistantSettings, now = ne
     for (const e of [...g.items].sort((x, y) => monthlyEquivalent(y) - monthlyEquivalent(x))) {
       const freq = e.frequency === "MENSUEL" ? "" : ` (${eur2(e.amount)} ${e.frequency.toLowerCase()})`;
       const day = e.dayOfMonth ? `, le ${e.dayOfMonth}` : "";
-      line(`- ${e.name} — ${categoryMeta(e.category).label} : ${eur2(monthlyEquivalent(e))}${freq}${day}${e.account ? ` → ${e.account.name}` : ""}`);
+      line(`- ${e.name} (${categoryMeta(e.category).label}) : ${eur2(monthlyEquivalent(e))}${freq}${day}${e.account ? `, vers ${e.account.name}` : ""}`);
     }
   }
   const [income, charges, saved] = totals;
@@ -204,11 +204,11 @@ export async function buildAssistantContext(profile: AssistantSettings, now = ne
   const career = projection.career;
   if (career) {
     line(
-      `- Après le diplôme (enregistré) : CDI dès ${career.start}, ${eur(career.gross)} brut/an ≈ ${eur(netMonthlyFromGross(career.gross))} net/mois après impôt, +${pct(career.raise)}/an, ${pct(career.share, 0)} de la hausse investie sur ${data.accounts.find((a) => a.id === career.to)?.name ?? "?"}`
+      `- Après le diplôme (enregistré) : CDI dès ${career.start}, ${eur(career.gross)} brut/an, soit environ ${eur(netMonthlyFromGross(career.gross))} net/mois après impôt, +${pct(career.raise)}/an, ${pct(career.share, 0)} de la hausse investie sur ${data.accounts.find((a) => a.id === career.to)?.name ?? "?"}`
     );
   } else {
     line(
-      `- Après le diplôme (valeurs par défaut) : CDI chez Thales dès 2027-10, 42 000 € brut/an ≈ ${eur(netMonthlyFromGross(42_000))} net/mois après impôt (fourchette jeunes diplômés Bac+5 : 39–47 k€), APL et prime d'activité supprimées, +3,5 %/an, 50 % de la hausse investie sur le PEA`
+      `- Après le diplôme (valeurs par défaut) : CDI chez Thales dès 2027-10, 42 000 € brut/an, soit environ ${eur(netMonthlyFromGross(42_000))} net/mois après impôt (fourchette jeunes diplômés Bac+5 : 39 à 47 k€), APL et prime d'activité supprimées, +3,5 %/an, 50 % de la hausse investie sur le PEA`
     );
   }
 

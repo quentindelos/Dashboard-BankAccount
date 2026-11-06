@@ -51,8 +51,8 @@ COPY entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
 
 # Data directory for the SQLite file (bind-mounted as a volume in compose).
-# Run as the "node" user the base image already ships (uid/gid 1000) —
-# that's also the default first non-root user on Debian/Raspberry Pi
+# Run as the "node" user the base image already ships (uid/gid 1000).
+# That's also the default first non-root user on Debian/Raspberry Pi
 # OS/Ubuntu, so the bind-mounted ./data volume (owned by that user on the
 # host) is writable without extra configuration. If your host user has a
 # different uid/gid, either `chown -R 1000:1000 ./data` on the host, or

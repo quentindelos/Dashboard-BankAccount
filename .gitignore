@@ -9,7 +9,7 @@ dist/
 .env.local
 .env.*.local
 
-# Database (contains your personal financial data — never commit)
+# Database (contains your personal financial data, never commit)
 prisma/*.db
 prisma/*.db-journal
 data/
@@ -25,8 +25,8 @@ backups/
 npm-debug.log*
 .vscode/
 
-# tr_import.py: credentials/cookie, downloaded statements, debug dumps —
-# all contain personal financial data or live session secrets.
+# tr_import.py: credentials/cookie, downloaded statements, debug dumps.
+# All contain personal financial data or live session secrets.
 scripts/tr_import.config.json
 scripts/*.venv/
 scripts/venv/

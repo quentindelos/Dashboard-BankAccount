@@ -59,7 +59,7 @@ export default async function DashboardPage() {
     return {
       key: `${h.accountId}-${h.name}`,
       name: meta?.label ?? h.name,
-      sub: h.isin ?? (meta?.kind === "crypto" ? "Crypto" : "—"),
+      sub: h.isin ?? (meta?.kind === "crypto" ? "Crypto" : "-"),
       accountType: h.accountType,
       logo: instrumentLogo(h.isin, meta?.label ?? h.name),
       value: h.value,

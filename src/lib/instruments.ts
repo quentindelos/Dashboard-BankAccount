@@ -2,7 +2,7 @@
 // lines without one, like crypto). Used for look-through exposure analysis.
 //
 // ETF breakdowns are APPROXIMATE (index weights, rounded) and drift over
-// time — good enough to read an allocation, not to trade on. Add a new
+// time. Good enough to read an allocation, not to trade on. Add a new
 // instrument here when you buy something new; anything missing falls back
 // to a generic "non classé" profile and is flagged in the Analyse page.
 
@@ -79,7 +79,7 @@ export const ASSET_CLASS_LABELS: Record<AssetClass, string> = {
   crypto: "Crypto",
 };
 
-// Approximate MSCI ACWI breakdown — the "whole world" reference portfolio
+// Approximate MSCI ACWI breakdown: the "whole world" reference portfolio
 // used to compare the user's equity allocation against.
 export const ACWI_REGIONS: Record<Region, number> = {
   amerique_nord: 0.67,

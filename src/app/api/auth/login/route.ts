@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
   }
   const { username, password } = parsed.data;
 
-  // Generic error message on every failure path below — never reveal whether
+  // Generic error message on every failure path below: never reveal whether
   // the username exists, which field was wrong, or that the account is locked
   // out due to the *username* specifically (timing is close enough either way
   // since we always hash-compare against a dummy when the user is missing).
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     return genericError();
   }
 
-  // Password correct — now require the 2FA step before granting a real session.
+  // Password correct: now require the 2FA step before granting a real session.
   await prisma.user.update({ where: { id: user.id }, data: { failedLogins: 0, lockedUntil: null } });
 
   const session = await getSession();

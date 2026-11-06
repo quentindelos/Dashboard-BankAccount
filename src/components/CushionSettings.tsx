@@ -131,7 +131,7 @@ export default function CushionSettings({
       ) : (
         <div className="stat-tile" style={{ marginBottom: 14 }}>
           <span className="value">{eur0.format(amount)}</span>
-          <span className="hint">Ajoute tes charges dans le calendrier pour calculer l’objectif.</span>
+          <span className="hint">Ajoute tes charges dans le calendrier pour calculer l'objectif.</span>
         </div>
       )}
 

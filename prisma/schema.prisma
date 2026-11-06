@@ -32,7 +32,7 @@ model User {
 
 // SQLite has no native enum type, so `type` is a plain String here. The set
 // of allowed values (ASSURANCE_VIE, LIVRET, CTO, PEA, PER, AUTRE) is enforced
-// in the application layer — see accountTypeValues in src/lib/validation.ts.
+// in the application layer (see accountTypeValues in src/lib/validation.ts).
 model Account {
   id          String   @id @default(cuid())
   name        String // e.g. "Livret A", "PEA Bourse Direct"
@@ -66,7 +66,7 @@ model Entry {
   @@index([accountId, date])
 }
 
-// One instrument holding within an account at a given snapshot date — e.g.
+// One instrument holding within an account at a given snapshot date, e.g.
 // one row of a Trade Republic "net worth statement" PDF. A full re-import
 // for a given (accountId, date) replaces that date's positions wholesale
 // (see /api/import/trade-republic), since each snapshot is a complete

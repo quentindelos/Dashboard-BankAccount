@@ -31,7 +31,9 @@ export default async function ExpensesPage() {
       accounts={accounts.map((a) => ({ id: a.id, name: a.name }))}
       cushion={
         <CushionSettings
-          accounts={accounts.map((a) => ({
+          // Only savings accounts can hold the cushion; investment accounts
+          // (PEA, CTO, AV...) are hidden unless already selected, so they can be unticked.
+          accounts={accounts.filter((a) => a.type === "LIVRET" || a.emergencyFund).map((a) => ({
             id: a.id,
             name: a.name,
             type: a.type,

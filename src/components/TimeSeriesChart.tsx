@@ -61,9 +61,9 @@ export interface Zoom {
 
 const zoomDate = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" });
 
-/** "3 août 2025 → 2 oct. 2025" */
+/** "du 3 août 2025 au 2 oct. 2025" */
 export function zoomLabel(zoom: Zoom): string {
-  return `${zoomDate.format(zoom.from)} → ${zoomDate.format(zoom.to)}`;
+  return `du ${zoomDate.format(zoom.from)} au ${zoomDate.format(zoom.to)}`;
 }
 
 /** Change between the first and last visible rows. When the amount invested

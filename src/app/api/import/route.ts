@@ -5,7 +5,7 @@ import { requireAuth } from "@/lib/auth";
 import { accountTypeValues, expenseSchema } from "@/lib/validation";
 
 const importSchema = z.object({
-  // v1 exports have no `positions` field — accepted for backward compatibility.
+  // v1 exports have no `positions` field; they are accepted for backward compatibility.
   exportFormatVersion: z.union([z.literal(1), z.literal(2)]),
   // Optional: older exports have no expenses/settings.
   expenses: z.array(expenseSchema.extend({ id: z.string().min(1) })).default([]),

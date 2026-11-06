@@ -1,6 +1,6 @@
 // Lightweight in-memory IP rate limiter for auth endpoints.
 //
-// This is intentionally simple (single-process, resets on restart) — it's a
+// This is intentionally simple (single-process, resets on restart). It's a
 // second layer on top of the per-account lockout stored in the DB (see
 // User.failedLogins / lockedUntil), which is what actually protects against
 // a determined attacker across restarts. This layer just makes it expensive

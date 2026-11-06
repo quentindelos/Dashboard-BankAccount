@@ -11,8 +11,8 @@ const schema = z.object({
   token: totpTokenSchema,
 });
 
-// Changing the password requires the current password AND a valid 2FA code
-// — not just an active session — since a session cookie alone shouldn't be
+// Changing the password requires the current password AND a valid 2FA code,
+// not just an active session, since a session cookie alone shouldn't be
 // enough to take over long-term access to the account.
 export async function POST(request: NextRequest) {
   const { userId } = await requireAuth();

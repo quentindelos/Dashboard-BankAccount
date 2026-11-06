@@ -18,7 +18,7 @@ export const THEMES = [
   {
     id: "degrade",
     label: "Dégradé",
-    description: "Noir profond, cartes effet verre, violet → rose",
+    description: "Noir profond, cartes effet verre, dégradé violet et rose",
     swatches: ["#07060c", "#8b5cf6", "#ec4899", "#4ade80"],
   },
   {

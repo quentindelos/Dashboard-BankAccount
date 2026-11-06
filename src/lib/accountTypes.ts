@@ -1,6 +1,6 @@
 // Fixed categorical mapping: account type -> display label + chart color.
 // Order and hue assignment follow the validated categorical palette
-// (see the dataviz skill) and must stay FIXED — never reassign colors based
+// (see the dataviz skill) and must stay FIXED. Never reassign colors based
 // on which types happen to be present, only on the type itself.
 // `cssVar` points at the same color through the CSS tokens in globals.css,
 // for plain-HTML marks that should follow the theme automatically.
@@ -20,7 +20,7 @@ export const ACCOUNT_TYPE_META: Record<
 
 export const ACCOUNT_TYPE_ORDER = ["ASSURANCE_VIE", "LIVRET", "CTO", "PEA", "PER", "EPARGNE_SALARIALE", "CRYPTO", "AUTRE"] as const;
 
-// Slots not used by any account type, handed to the 2nd, 3rd… account of a
+// Slots not used by any account type, handed to the 2nd, 3rd, etc. account of a
 // type that already appears (e.g. two livrets) in per-account charts.
 const SPARE_SLOTS = ["var(--series-5)", "var(--series-8)", "var(--series-7)", "var(--series-6)"];
 

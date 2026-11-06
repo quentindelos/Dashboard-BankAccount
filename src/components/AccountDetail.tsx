@@ -234,7 +234,7 @@ export default function AccountDetail({
             )}
           </div>
           <p className="secondary" style={{ marginTop: 4 }}>
-            Détail des instruments au {dateFmt.format(new Date(selectedPositionDate))} — {currencyFmt.format(positionsTotal)}
+            Détail des instruments au {dateFmt.format(new Date(selectedPositionDate))} : {currencyFmt.format(positionsTotal)}
           </p>
           <div className="table-wrap">
           <table style={{ marginTop: 8 }}>
@@ -265,13 +265,13 @@ export default function AccountDetail({
                           {p.name}
                         </span>
                       </td>
-                      <td className="secondary">{p.isin ?? "—"}</td>
+                      <td className="secondary">{p.isin ?? "-"}</td>
                       <td className="num">{quantityFmt.format(p.quantity)}</td>
-                      <td className="num">{p.costBasis !== null ? currencyFmt.format(p.costBasis) : "—"}</td>
+                      <td className="num">{p.costBasis !== null ? currencyFmt.format(p.costBasis) : "-"}</td>
                       <td className="num">{currencyFmt.format(p.price)}</td>
                       <td className="num">{currencyFmt.format(p.value)}</td>
                       <td className={`num ${gain === null ? "" : gain >= 0 ? "pos" : "neg"}`}>
-                        {gain === null ? "—" : `${signed(gain, (n) => currencyFmt.format(n))} (${formatPct(Math.abs(gainPct ?? 0), 1)})`}
+                        {gain === null ? "-" : `${signed(gain, (n) => currencyFmt.format(n))} (${formatPct(Math.abs(gainPct ?? 0), 1)})`}
                       </td>
                       <td className="num secondary">{formatPct(positionsTotal ? p.value / positionsTotal : 0, 1)}</td>
                     </tr>
@@ -308,8 +308,8 @@ export default function AccountDetail({
           <h2>Mise à jour</h2>
           <p className="secondary" style={{ margin: 0 }}>
             Ce compte Trade Republic se remplit uniquement avec l'export des transactions : dans Trade Republic,{" "}
-            <strong>Relevés → Exportation des transactions</strong>, puis envoie le fichier dans{" "}
-            <Link href="/settings">Réglages → Historique Trade Republic</Link>.
+            <strong>Relevés &gt; Exportation des transactions</strong>, puis envoie le fichier dans{" "}
+            <Link href="/settings">Réglages &gt; Historique Trade Republic</Link>.
           </p>
         </div>
       ) : (
@@ -361,7 +361,7 @@ export default function AccountDetail({
                   <tr key={en.id}>
                     <td>{dateFmt.format(new Date(en.date))}</td>
                     <td className="num">{currencyFmt.format(en.value)}</td>
-                    <td className="secondary">{en.note ?? "—"}</td>
+                    <td className="secondary">{en.note ?? "-"}</td>
                     <td className="row-actions">
                       <button className="btn btn-danger" onClick={() => handleDeleteEntry(en.id)} type="button">
                         Supprimer

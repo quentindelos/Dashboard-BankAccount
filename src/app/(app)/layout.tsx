@@ -3,7 +3,7 @@ import { getSession } from "@/lib/auth";
 import Sidebar from "@/components/Sidebar";
 
 // Everything under this layout is private financial data tied to the
-// current session — never statically prerender or cache it.
+// current session, so never statically prerender or cache it.
 export const dynamic = "force-dynamic";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {

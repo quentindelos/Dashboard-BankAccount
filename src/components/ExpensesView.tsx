@@ -207,7 +207,7 @@ export default function ExpensesView({
           <span className="kpi-icon" aria-hidden="true">🐷</span>
           <span className="label">Épargne par mois</span>
           <span className="value">{eur0.format(savings)}</span>
-          <span className="hint">{savings > 0 ? `${formatPct(savings / outflow)} de ce qui sort chaque mois` : "Ajoute tes virements vers livrets, PEA…"}</span>
+          <span className="hint">{savings > 0 ? `${formatPct(savings / outflow)} de ce qui sort chaque mois` : "Ajoute tes virements vers livrets, PEA..."}</span>
         </div>
         <div className="card stat-tile">
           <span className="kpi-icon" aria-hidden="true">⏳</span>
@@ -263,7 +263,7 @@ export default function ExpensesView({
 
         {expenses.length === 0 && (
           <p className="muted" style={{ marginTop: 16 }}>
-            Ajoute ta première charge (loyer, crédit, abonnements, épargne, courses…) avec le bouton en haut, ou double-clique sur un jour du calendrier.
+            Ajoute ta première charge (loyer, crédit, abonnements, épargne, courses...) avec le bouton en haut, ou double-clique sur un jour du calendrier.
           </p>
         )}
       </section>

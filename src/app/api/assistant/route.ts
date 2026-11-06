@@ -205,7 +205,7 @@ function errorText(err: unknown, run: Run): string {
     if (err.status === 400 && /api.?key/i.test(err.message)) return "La clé API Gemini est refusée : vérifie GEMINI_API_KEY dans le fichier .env.";
     if (err.status === 400 && /search|grounding|tool|function/i.test(err.message))
       return "Ce modèle n'accepte pas les outils demandés : désactive la recherche web ou change de modèle dans les paramètres.";
-    if (err.status === 402) return "Crédit Gemini épuisé : recharge le projet Google dans AI Studio (https://ai.studio/projects → Facturation).";
+    if (err.status === 402) return "Crédit Gemini épuisé : recharge le projet Google dans AI Studio (https://ai.studio/projects, menu Facturation).";
     if (err.status === 403) {
       return process.env.GEMINI_VERTEX === "true"
         ? "Cette clé n'a pas accès à Vertex AI : active « Vertex AI API » dans le projet et autorise-la dans les restrictions de la clé."

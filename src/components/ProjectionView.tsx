@@ -188,7 +188,7 @@ export default function ProjectionView({
         </div>
         <div className="hero-value">{eur0.format(end.total)}</div>
         <span className="muted" style={{ fontSize: 13 }}>
-          Fourchette probable : {eur0.format(end.low)} – {eur0.format(end.high)}
+          Fourchette probable : de {eur0.format(end.low)} à {eur0.format(end.high)}
         </span>
         {withoutCareer !== null && careerFrom && (
           <div className="muted" style={{ fontSize: 13, marginTop: 2 }}>
@@ -280,8 +280,8 @@ export default function ProjectionView({
               onChange={(e) => updateCareer("gross", e.target.value)}
             />
             <span className="muted" style={{ fontSize: 12 }}>
-              ≈ {eur0.format(newNet)} net/mois après impôt · jeunes diplômés Bac+5 chez Thales :{" "}
-              {eur0.format(THALES_GRADUATE_RANGE[0])} – {eur0.format(THALES_GRADUATE_RANGE[1])}
+              Environ {eur0.format(newNet)} net/mois après impôt · jeunes diplômés Bac+5 chez Thales : de{" "}
+              {eur0.format(THALES_GRADUATE_RANGE[0])} à {eur0.format(THALES_GRADUATE_RANGE[1])}
             </span>
           </div>
           <div className="field">
@@ -496,7 +496,7 @@ export default function ProjectionView({
         </div>
         <p className="muted" style={{ fontSize: 12, marginTop: 14 }}>
           Simulation indicative : rendements moyens constants, intérêts composés chaque mois, avant impôts et frais. Les marchés
-          ne montent pas en ligne droite ; la fourchette donne une idée de l'incertitude, pas une garantie.
+          ne montent pas en ligne droite : la fourchette indique l'incertitude et ne garantit rien.
         </p>
       </section>
     </>
@@ -564,7 +564,7 @@ function ProjectionChart({
                   <div className="tt-row">
                     <span>Fourchette</span>
                     <span className="num">
-                      {eur0.format(row.low)} – {eur0.format(row.high)}
+                      {eur0.format(row.low)} à {eur0.format(row.high)}
                     </span>
                   </div>
                   <div className="tt-row">

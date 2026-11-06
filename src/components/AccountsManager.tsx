@@ -125,9 +125,9 @@ export default function AccountsManager({ initialAccounts }: { initialAccounts: 
                   </span>
                 </td>
                 <td className="secondary">{accountTypeLabel(a.type)}</td>
-                <td className="secondary">{a.institution ?? "—"}</td>
-                <td className="num">{a.latestValue !== null ? currencyFmt.format(a.latestValue) : "—"}</td>
-                <td className="secondary">{a.latestDate ? dateFmt.format(new Date(a.latestDate)) : "—"}</td>
+                <td className="secondary">{a.institution ?? "-"}</td>
+                <td className="num">{a.latestValue !== null ? currencyFmt.format(a.latestValue) : "-"}</td>
+                <td className="secondary">{a.latestDate ? dateFmt.format(new Date(a.latestDate)) : "-"}</td>
                 <td className="row-actions">
                   <button className="btn btn-danger" onClick={() => handleArchive(a.id)} type="button">
                     Archiver

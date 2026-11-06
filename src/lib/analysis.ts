@@ -405,7 +405,7 @@ export function analyzePortfolio(holdings: HoldingRow[], otherAssets: OtherAsset
     advice.push({
       level: "attention",
       title: "Aucun matelas de sécurité défini",
-      body: "Indique dans Dépenses le ou les livrets qui servent d'épargne de précaution : l'argent disponible sans risque pour un imprévu, qui t'évite de vendre tes placements au mauvais moment.",
+      body: "Indique dans Dépenses le ou les livrets qui servent d'épargne de précaution : de l'argent disponible sans risque en cas d'imprévu, pour ne pas avoir à vendre tes placements au mauvais moment.",
     });
   } else if (cushion.monthsCovered === null) {
     advice.push({
@@ -424,12 +424,12 @@ export function analyzePortfolio(holdings: HoldingRow[], otherAssets: OtherAsset
           : `Matelas de sécurité : ${months.toFixed(1).replace(".", ",")} mois sur ${cushion.targetMonths}`,
       body:
         months >= cushion.targetMonths
-          ? `${eur.format(cushion.amount)} disponibles pour un objectif de ${eur.format(cushion.target ?? 0)}. Au-delà, l'argent en plus sur ce livret peut être investi.`
+          ? `${eur.format(cushion.amount)} disponibles pour un objectif de ${eur.format(cushion.target ?? 0)}. Ce qui dépasse cet objectif peut être investi.`
           : `Il manque ${eur.format(missing)} pour atteindre ${eur.format(cushion.target ?? 0)}.${
               cushion.reachDate
                 ? ` Au rythme de ${eur.format(cushion.monthlyContribution)} par mois, il sera complet vers ${monthYear.format(new Date(cushion.reachDate))}.`
                 : " Programme un virement mensuel vers ce livret (dans Dépenses, catégorie Épargne) pour savoir quand il sera complet."
-            } Tant qu'il n'est pas complet, priorise-le avant d'ajouter de l'argent en bourse : c'est lui qui t'évite de vendre au mauvais moment.`,
+            } Tant qu'il n'est pas complet, alimente-le avant d'ajouter de l'argent en bourse, pour ne pas avoir à vendre au mauvais moment.`,
     });
   }
 
@@ -454,7 +454,7 @@ export function analyzePortfolio(holdings: HoldingRow[], otherAssets: OtherAsset
     advice.push({
       level: "ok",
       title: "Bonne répartition PEA / CTO",
-      body: "Ton CTO ne contient que des titres non éligibles au PEA (actions US, or, …) et tes ETF sont sur le PEA, l'enveloppe la plus avantageuse fiscalement.",
+      body: "Ton CTO ne contient que des titres non éligibles au PEA (actions US, or, etc.) et tes ETF sont sur le PEA, l'enveloppe la plus avantageuse fiscalement.",
     });
   }
 
@@ -493,7 +493,7 @@ export function analyzePortfolio(holdings: HoldingRow[], otherAssets: OtherAsset
     advice.push({
       level: "info",
       title: "Assurance vie comptée en fonds euros",
-      body: "Faute de détail des supports, elle est considérée comme sans risque dans l'analyse. Si elle contient des unités de compte (actions, ETF…), ton exposition réelle aux actions est plus élevée qu'affiché.",
+      body: "Faute de détail des supports, elle est considérée comme sans risque dans l'analyse. Si elle contient des unités de compte (actions, ETF...), ton exposition réelle aux actions est plus élevée qu'affiché.",
     });
   }
 

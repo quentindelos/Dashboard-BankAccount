@@ -143,7 +143,7 @@ export function AdviceList({ advice, limit, moreHref }: { advice: Advice[]; limi
       ))}
       {moreHref && limit && advice.length > limit && (
         <Link href={moreHref} className="btn" style={{ alignSelf: "flex-start" }}>
-          Voir les {advice.length} recommandations →
+          Voir les {advice.length} recommandations
         </Link>
       )}
     </div>

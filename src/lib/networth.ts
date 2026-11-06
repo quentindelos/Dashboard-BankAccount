@@ -5,7 +5,7 @@
 //  - cash accounts (livrets) keep their last value (a balance only moves
 //    when money moves, so a step is the truth);
 //  - market accounts (CTO, PEA, assurance vie, crypto...) are interpolated
-//    linearly — carrying the old value forward for months and then dropping
+//    linearly: carrying the old value forward for months and then dropping
 //    on the day of the next reading would invent a crash that never happened.
 // After an account's last reading its value is carried forward; before its
 // first reading it contributes 0 (the account didn't exist yet).

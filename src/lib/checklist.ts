@@ -26,7 +26,7 @@ export interface ChecklistItem {
 
 /** A Trade Republic export older than this is a reminder. */
 const TR_MAX_DAYS = 14;
-/** A manual balance (livret, assurance vie…) older than this is a reminder. */
+/** A manual balance (livret, assurance vie...) older than this is a reminder. */
 const MANUAL_MAX_DAYS = 31;
 
 const DAY = 86_400_000;
@@ -69,7 +69,7 @@ export async function buildChecklist(now = new Date()): Promise<ChecklistItem[]>
       level: trLast ? "late" : "missing",
       title: "Importe ton export Trade Republic",
       detail: trLast
-        ? `${tr.map((a) => a.name).join(", ")} : ${age(trLast, now)}. Dans l'app Trade Republic : Relevés → Exportation des transactions.`
+        ? `${tr.map((a) => a.name).join(", ")} : ${age(trLast, now)}. Dans l'app Trade Republic : Relevés > Exportation des transactions.`
         : "Aucun historique importé pour tes comptes Trade Republic.",
       href: "/settings",
       action: "Importer",
@@ -117,7 +117,7 @@ export async function buildChecklist(now = new Date()): Promise<ChecklistItem[]>
       id: "budget-income",
       level: "missing",
       title: "Ajoute tes revenus",
-      detail: "Salaire, aides… pour calculer ton taux d'épargne et ce qu'il te reste chaque mois.",
+      detail: "Salaire, aides... pour calculer ton taux d'épargne et ce qu'il te reste chaque mois.",
       href: "/expenses",
       action: "Ajouter",
     });
@@ -127,7 +127,7 @@ export async function buildChecklist(now = new Date()): Promise<ChecklistItem[]>
       id: "budget-charges",
       level: "missing",
       title: "Ajoute tes charges",
-      detail: "Loyer, abonnements, courses… pour dimensionner ton matelas de sécurité.",
+      detail: "Loyer, abonnements, courses... pour dimensionner ton matelas de sécurité.",
       href: "/expenses",
       action: "Ajouter",
     });
@@ -172,7 +172,7 @@ export async function buildChecklist(now = new Date()): Promise<ChecklistItem[]>
       id: "assistant-tmi",
       level: "tip",
       title: "Indique ta tranche d'imposition",
-      detail: "Le conseiller en a besoin pour chiffrer précisément les montages fiscaux (PER, barème ou flat tax…).",
+      detail: "Le conseiller en a besoin pour chiffrer précisément les montages fiscaux (PER, barème ou flat tax...).",
       href: "/assistant",
       action: "Renseigner",
     });

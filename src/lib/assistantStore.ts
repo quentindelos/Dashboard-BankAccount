@@ -25,7 +25,7 @@ function parseMessages(json: string): ChatMessage[] {
 
 export function conversationTitle(question: string): string {
   const flat = question.replace(/\s+/g, " ").trim();
-  return flat.length > 70 ? `${flat.slice(0, 67).trimEnd()}…` : flat;
+  return flat.length > 70 ? `${flat.slice(0, 67).trimEnd()}...` : flat;
 }
 
 export async function listConversations() {

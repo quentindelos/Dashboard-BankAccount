@@ -142,8 +142,8 @@ export default async function AnalysisPage() {
                           {c.name}
                         </span>
                       </td>
-                      <td className="num">{c.direct ? eur0.format(c.direct) : "—"}</td>
-                      <td className="num">{c.viaFunds ? `~${eur0.format(c.viaFunds)}` : "—"}</td>
+                      <td className="num">{c.direct ? eur0.format(c.direct) : "-"}</td>
+                      <td className="num">{c.viaFunds ? `~${eur0.format(c.viaFunds)}` : "-"}</td>
                       <td className="num">{eur0.format(c.total)}</td>
                       <td className="num secondary">{formatPct(c.pct, 1)}</td>
                     </tr>
@@ -197,7 +197,7 @@ export default async function AnalysisPage() {
       </section>
 
       <p className="disclaimer">
-        Analyse automatique et indicative, pas un conseil en investissement personnalisé. Les compositions d'ETF,
+        Cette analyse automatique est indicative et ne remplace pas un conseil en investissement personnalisé. Les compositions d'ETF,
         volatilités et corrélations sont des approximations (référentiel dans <code>src/lib/instruments.ts</code>), et
         l'analyse ne connaît ni tes revenus, ni tes projets, ni ton horizon. Les comptes sans détail des positions sont
         classés selon leur type (livret = liquidités, assurance vie = fonds euros).{" "}

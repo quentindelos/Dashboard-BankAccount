@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 
-// This reads live DB/session state on every request — never statically prerender it.
+// This reads live DB/session state on every request, so never statically prerender it.
 export const dynamic = "force-dynamic";
 
 export default async function RootPage() {

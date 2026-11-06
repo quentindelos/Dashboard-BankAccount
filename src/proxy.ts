@@ -3,7 +3,7 @@ import { getIronSession } from "iron-session";
 import { sessionOptions, type SessionData } from "@/lib/session";
 
 // Routes that do NOT require a fully-authenticated session (password + 2FA).
-// Everything else — every page and every API route not listed here — is
+// Everything else (every page and every API route not listed here) is
 // treated as protected by default, which is the safer failure mode: a new
 // route added later is private unless someone deliberately opens it up.
 const PUBLIC_PATHS = [
@@ -36,9 +36,9 @@ function buildCsp(nonce: string): string {
     // rejecting any script an attacker might inject without it.
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${devEval}`,
     // Inline `style="..."` attributes (used extensively by React and by
-    // Recharts for chart positioning/colors) aren't covered by nonces —
+    // Recharts for chart positioning/colors) aren't covered by nonces:
     // CSP has no nonce mechanism for the style attribute, only for <style>
-    // elements — so this stays 'unsafe-inline'. Style injection is a much
+    // elements. So this stays 'unsafe-inline'. Style injection is a much
     // lower-severity risk than script injection.
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data:", // data: needed for the TOTP QR code image

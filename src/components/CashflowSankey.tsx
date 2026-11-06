@@ -66,7 +66,7 @@ export default function CashflowSankey({ expenses, onAddIncome }: { expenses: Ex
   const incomeList = active.filter(isIncome);
   const outList = active.filter((e) => !isIncome(e));
 
-  // Income: one node per source (salary, CAF, partner…), same-name lines merged.
+  // Income: one node per source (salary, CAF, partner...), same-name lines merged.
   const left = aggregate(incomeList, (e) => {
     const m = categoryMeta(e.category);
     return { key: `${e.name.trim().toLowerCase()}|${e.category}`, label: e.name.trim(), color: m.color };
@@ -95,7 +95,7 @@ export default function CashflowSankey({ expenses, onAddIncome }: { expenses: Ex
       <section className="card section">
         {header}
         <div className="empty-state" style={{ padding: "24px 0" }}>
-          <p className="muted">Ajoute tes revenus (salaire, primes…) pour voir comment ils se répartissent entre charges et épargne.</p>
+          <p className="muted">Ajoute tes revenus (salaire, primes...) pour voir comment ils se répartissent entre charges et épargne.</p>
           <button className="btn btn-primary" type="button" onClick={onAddIncome}>
             + Ajouter un revenu
           </button>

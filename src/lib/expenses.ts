@@ -55,7 +55,7 @@ interface CategoryInfo {
   group: CategoryGroup;
   /** Money set aside, not spent: left out of the safety cushion. */
   savings?: boolean;
-  /** Money coming in (salary…): never counted as a charge. */
+  /** Money coming in (salary...): never counted as a charge. */
   income?: boolean;
 }
 
@@ -78,7 +78,7 @@ const CATEGORIES: Record<ExpenseCategory, CategoryInfo> = {
   ASSURANCES: { label: "Assurances", emoji: "🛡️", group: "protection" },
   SANTE: { label: "Santé & mutuelle", emoji: "💊", group: "protection" },
   EPARGNE: { label: "Épargne (livrets)", emoji: "🐷", group: "epargne", savings: true },
-  INVESTISSEMENT: { label: "Investissement (PEA, CTO…)", emoji: "📈", group: "epargne", savings: true },
+  INVESTISSEMENT: { label: "Investissement (PEA, CTO...)", emoji: "📈", group: "epargne", savings: true },
   LOISIRS: { label: "Loisirs & sorties", emoji: "🎟️", group: "loisirs" },
   VOYAGES: { label: "Voyages & vacances", emoji: "✈️", group: "loisirs" },
   CADEAUX: { label: "Cadeaux & dons", emoji: "🎁", group: "loisirs" },
@@ -154,7 +154,7 @@ export function totalMonthly(expenses: ExpenseRow[]): number {
   return expenses.filter((e) => e.active && !isSavings(e) && !isIncome(e)).reduce((s, e) => s + monthlyEquivalent(e), 0);
 }
 
-/** Monthly income (salary, bonuses smoothed over the year…). */
+/** Monthly income (salary, bonuses smoothed over the year...). */
 export function totalIncome(expenses: ExpenseRow[]): number {
   return expenses.filter((e) => e.active && isIncome(e)).reduce((s, e) => s + monthlyEquivalent(e), 0);
 }

@@ -180,7 +180,7 @@ export default function SynthesisView({
             <span className="value">{eur0.format(cushion.amount)}</span>
             {cushion.accounts.length === 0 ? (
               <span className="hint">
-                <Link href="/expenses">Choisis le livret qui sert de matelas →</Link>
+                <Link href="/expenses">Choisis le livret qui sert de matelas</Link>
               </span>
             ) : cushion.target && cushionPct !== null ? (
               <>
@@ -201,7 +201,7 @@ export default function SynthesisView({
             ) : (
               <span className="hint">
                 {cushion.accounts.map((a) => a.name).join(", ")} ·{" "}
-                <Link href="/expenses">ajoute tes charges du mois →</Link>
+                <Link href="/expenses">ajoute tes charges du mois</Link>
               </span>
             )}
           </section>
@@ -214,7 +214,7 @@ export default function SynthesisView({
             </span>
             <RiskMeter level={riskLevel} />
             <span className="hint">
-              Volatilité estimée ~{formatPct(volatility, 0)} par an · <Link href="/analysis">détails →</Link>
+              Volatilité estimée ~{formatPct(volatility, 0)} par an · <Link href="/analysis">détails</Link>
             </span>
           </section>
         </div>
@@ -232,7 +232,7 @@ export default function SynthesisView({
           <div className="card-title">
             <h2>Mes comptes</h2>
             <Link href="/accounts" className="muted" style={{ fontSize: 13 }}>
-              Gérer →
+              Gérer
             </Link>
           </div>
           <div className="alloc-list">
@@ -305,7 +305,7 @@ export default function SynthesisView({
         <div className="section-title">
           <h2>À retenir</h2>
           <Link href="/analysis" className="muted" style={{ fontSize: 13 }}>
-            Analyse complète →
+            Analyse complète
           </Link>
         </div>
         <AdviceList advice={advice} limit={3} moreHref="/analysis" />
