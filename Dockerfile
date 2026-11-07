@@ -42,22 +42,26 @@ ENV NODE_ENV=production
 
 COPY package.json package-lock.json ./
 COPY prisma ./prisma
-RUN npm ci --omit=dev
+# Clearing npm's cache keeps it out of the image.
+RUN npm ci --omit=dev && npm cache clean --force
 
-COPY --from=builder /app/.next ./.next
+# The app's files stay owned by root and are only read at runtime. A
+# `chown -R` on /app would copy all of node_modules into a new layer and
+# double the image size (enough to fill a Raspberry Pi's SD card), so only
+# what the app writes to belongs to "node": .next (its runtime cache) and data.
+COPY --from=builder --chown=node:node /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma
-COPY entrypoint.sh ./entrypoint.sh
-RUN chmod +x ./entrypoint.sh
+COPY --chmod=755 entrypoint.sh ./entrypoint.sh
 
-# Data directory for the SQLite file (bind-mounted as a volume in compose).
-# Run as the "node" user the base image already ships (uid/gid 1000).
-# That's also the default first non-root user on Debian/Raspberry Pi
+# Data directory for the SQLite file, logos and photos (bind-mounted in
+# compose). Run as the "node" user the base image already ships (uid/gid
+# 1000). That's also the default first non-root user on Debian/Raspberry Pi
 # OS/Ubuntu, so the bind-mounted ./data volume (owned by that user on the
 # host) is writable without extra configuration. If your host user has a
 # different uid/gid, either `chown -R 1000:1000 ./data` on the host, or
 # override with `user: "<uid>:<gid>"` in docker-compose.yml.
-RUN mkdir -p /app/data && chown -R node:node /app
+RUN mkdir -p /app/data && chown node:node /app/data
 
 USER node
 EXPOSE 3000
