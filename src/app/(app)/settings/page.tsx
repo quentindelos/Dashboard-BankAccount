@@ -20,6 +20,16 @@ export default async function SettingsPage() {
         </div>
       </div>
       <ThemePicker current={theme} />
+      <div className="card">
+        <h2>Relevé de patrimoine (PDF)</h2>
+        <p className="secondary">
+          Un document à garder ou à transmettre : comptes, positions, répartition, note du portefeuille et plan d&apos;action, à la date
+          du jour.
+        </p>
+        <a className="btn btn-primary" href="/api/report" download>
+          Télécharger le relevé PDF
+        </a>
+      </div>
       <TradeRepublicImport />
       <SettingsPanel />
     </>

@@ -4,6 +4,7 @@
 import Link from "next/link";
 import AnimatedNumber from "@/components/AnimatedNumber";
 import type { Advice, AdviceLevel, Slice } from "@/lib/analysis";
+import { formatGrade, scoreTone } from "@/lib/grades";
 
 export const eur0 = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 export const eur2 = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });
@@ -155,11 +156,74 @@ export function AdviceList({ advice, limit, moreHref }: { advice: Advice[]; limi
 
 export function RiskMeter({ level }: { level: number }) {
   return (
-    <div className="risk-meter" role="img" aria-label={`Niveau de risque ${level} sur 7`}>
-      {Array.from({ length: 7 }, (_, i) => (
+    <div className="risk-meter" role="img" aria-label={`Niveau de risque ${level} sur 10`}>
+      {Array.from({ length: 10 }, (_, i) => (
         <span key={i} className={i + 1 === level ? "current" : i + 1 < level ? "on" : ""} />
       ))}
     </div>
+  );
+}
+
+/** A grade out of 10 in a ring. */
+export function ScoreRing({ score, size = 120 }: { score: number; size?: number }) {
+  const r = 52;
+  const c = 2 * Math.PI * r;
+  return (
+    <div className={`score-ring tone-${scoreTone(score)}`} style={{ width: size, height: size }} role="img" aria-label={`Note ${formatGrade(score)} sur 10`}>
+      <svg viewBox="0 0 120 120" width={size} height={size} aria-hidden="true">
+        <circle cx="60" cy="60" r={r} className="score-ring-track" />
+        <circle cx="60" cy="60" r={r} className="score-ring-fill" strokeDasharray={`${(c * score) / 10} ${c}`} transform="rotate(-90 60 60)" />
+      </svg>
+      <span className="score-ring-value">
+        {formatGrade(score)}
+        <small>/10</small>
+      </span>
+    </div>
+  );
+}
+
+/** One graded criterion: name, grade and a bar out of 10. */
+export function ScoreBar({ label, score, summary }: { label: string; score: number; summary?: string }) {
+  return (
+    <div className={`score-bar tone-${scoreTone(score)}`}>
+      <div className="score-bar-head">
+        <span>{label}</span>
+        <strong>
+          {formatGrade(score)}
+          <span className="muted">/10</span>
+        </strong>
+      </div>
+      <div className="score-bar-track">
+        <span style={{ width: `${score * 10}%` }} />
+      </div>
+      {summary && <p className="score-bar-summary">{summary}</p>}
+    </div>
+  );
+}
+
+/** The numbered next steps of the analysis. */
+export function ActionPlan({ plan, labels }: { plan: Advice[]; labels: Record<string, string> }) {
+  if (plan.length === 0) return <p className="muted">Rien d&apos;urgent : ton portefeuille est en ordre. Continue tes versements réguliers.</p>;
+  return (
+    <ol className="action-plan">
+      {plan.map((a, i) => (
+        <li key={i} className={`action-step ${a.level}`}>
+          <span className="action-num" aria-hidden="true">
+            {i + 1}
+          </span>
+          <div>
+            <p className="action-title">{a.action}</p>
+            <p className="action-why">
+              <strong>{a.title}.</strong> {a.body}
+            </p>
+            <span className="action-tags">
+              <span className={`action-priority ${a.level}`}>{ADVICE_META[a.level].tag}</span>
+              {a.criterion && <span className="pill">{labels[a.criterion]}</span>}
+            </span>
+          </div>
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -177,6 +241,4 @@ export function assetClassColor(key: string): string {
   return ASSET_CLASS_COLORS[key] ?? "var(--text-muted)";
 }
 
-export function riskLabel(level: number): string {
-  return ["", "Très prudent", "Prudent", "Modéré", "Équilibré", "Dynamique", "Offensif", "Très offensif"][level] ?? "";
-}
+export { riskLabel } from "@/lib/grades";

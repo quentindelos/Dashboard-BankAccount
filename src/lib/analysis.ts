@@ -63,10 +63,49 @@ export interface StressTest {
 
 export type AdviceLevel = "important" | "attention" | "info" | "ok";
 
+/** What the portfolio is graded on, each out of 10. */
+export type ScoreKey = "diversification" | "safety" | "tax" | "fit" | "resilience";
+
+export const SCORE_LABELS: Record<ScoreKey, string> = {
+  diversification: "Diversification",
+  safety: "Épargne de précaution",
+  tax: "Fiscalité et enveloppes",
+  fit: "Adéquation à ton profil",
+  resilience: "Résistance aux crises",
+};
+
+const SCORE_WEIGHTS: Record<ScoreKey, number> = { diversification: 0.25, safety: 0.25, fit: 0.2, tax: 0.15, resilience: 0.15 };
+
+export interface ScoreCriterion {
+  key: ScoreKey;
+  label: string;
+  /** 0..10, one decimal. */
+  score: number;
+  /** Why this grade, in one sentence. */
+  summary: string;
+}
+
+export interface Scores {
+  /** Weighted average of the criteria, 0..10. */
+  overall: number;
+  criteria: ScoreCriterion[];
+}
+
+/** Investor profile set in the assistant's settings (risk tolerance). */
+export type RiskProfile = "prudent" | "balanced" | "dynamic" | "aggressive";
+
+/** Risk level (out of 10) that suits each profile. */
+const PROFILE_TARGET: Record<RiskProfile, number> = { prudent: 3, balanced: 5, dynamic: 7, aggressive: 8 };
+const PROFILE_LABEL: Record<RiskProfile, string> = { prudent: "prudent", balanced: "équilibré", dynamic: "dynamique", aggressive: "offensif" };
+
 export interface Advice {
   level: AdviceLevel;
   title: string;
   body: string;
+  /** The concrete next step, in the imperative (shown in the action plan). */
+  action?: string;
+  /** The grade this step improves. */
+  criterion?: ScoreKey;
 }
 
 export interface Analysis {
@@ -83,10 +122,13 @@ export interface Analysis {
   companies: CompanyExposure[];
   volatility: number; // whole patrimoine
   investedVolatility: number; // holdings only
-  riskLevel: number; // 1..7, PRIIPs-like scale on investedVolatility
+  riskLevel: number; // 1..10, from investedVolatility
   stress: StressTest[];
   unclassified: string[];
   advice: Advice[];
+  scores: Scores;
+  /** Next steps, most important first (the advice that has one). */
+  plan: Advice[];
 }
 
 const LIVRET_JEUNE_CAP = 1600;
@@ -149,11 +191,16 @@ function portfolioVolatility(lines: Line[]): number {
   return Math.sqrt(Math.max(variance, 0));
 }
 
+/** Risk level out of 10 from the yearly volatility: 1 below 1 %, 10 above 35 %. */
 function riskLevelFromVol(vol: number): number {
-  const bands = [0.005, 0.05, 0.12, 0.2, 0.3, 0.8];
+  const bands = [0.01, 0.03, 0.05, 0.08, 0.11, 0.15, 0.2, 0.25, 0.35];
   const idx = bands.findIndex((b) => vol < b);
-  return idx === -1 ? 7 : idx + 1;
+  return idx === -1 ? 10 : idx + 1;
 }
+
+const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x));
+/** A grade out of 10, rounded to one decimal. */
+const grade = (x: number) => Math.round(clamp(x, 0, 10) * 10) / 10;
 
 function toSlices<K extends string>(
   values: Map<K, number>,
@@ -185,7 +232,12 @@ const eur = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR",
 const monthYear = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" });
 const pct = (x: number, digits = 0) => `${(x * 100).toFixed(digits).replace(".", ",")} %`;
 
-export function analyzePortfolio(holdings: HoldingRow[], otherAssets: OtherAssetRow[], settings: AppSettings): Analysis {
+export function analyzePortfolio(
+  holdings: HoldingRow[],
+  otherAssets: OtherAssetRow[],
+  settings: AppSettings,
+  riskProfile: RiskProfile = "dynamic",
+): Analysis {
   const lines: Line[] = [
     ...holdings.map((h) => {
       const meta = findInstrument(h.isin, h.name);
@@ -359,6 +411,8 @@ export function analyzePortfolio(holdings: HoldingRow[], otherAssets: OtherAsset
           `Une action isolée peut perdre 30 à 50 % sur une mauvaise année, un risque qu'un ETF dilue. ` +
           `Pour réduire progressivement sans rien vendre : oriente tes prochains versements vers tes ETF.` +
           (biggestStock.accountType === "PEA" ? " Et si tu arbitres, une vente à l'intérieur du PEA n'est pas imposée tant que tu ne retires rien." : ""),
+        action: `Oriente tes prochains versements vers tes ETF plutôt que vers ${biggestStock.name}`,
+        criterion: "diversification",
       });
     }
   }
@@ -369,6 +423,8 @@ export function analyzePortfolio(holdings: HoldingRow[], otherAssets: OtherAsset
       level: s.pct > 0.25 ? "important" : "attention",
       title: `Secteur ${s.label.toLowerCase()} surpondéré : ${pct(s.pct)} de tes actions`,
       body: `C'est ${(s.pct / Math.max(s.benchmark ?? 0.01, 0.01)).toFixed(0)} fois son poids dans un portefeuille mondial (${pct(s.benchmark ?? 0, 1)}). Ton résultat dépend beaucoup de ce seul secteur.`,
+      action: `Dilue le secteur ${s.label.toLowerCase()} : n'y ajoute plus rien et renforce un ETF monde`,
+      criterion: "diversification",
     });
   }
 
@@ -387,6 +443,8 @@ export function analyzePortfolio(holdings: HoldingRow[], otherAssets: OtherAsset
         level: "info",
         title: "Répartition géographique éloignée du marché mondial",
         body: `${parts.join(" ; ")}. Ce n'est pas une erreur si c'est voulu. Sinon, un ETF MSCI World éligible PEA couvre plus de 1 300 sociétés dans 23 pays développés en une seule ligne.`,
+        action: "Fais d'un ETF MSCI World (éligible PEA) le cœur de tes versements",
+        criterion: "diversification",
       });
     }
   }
@@ -399,6 +457,8 @@ export function analyzePortfolio(holdings: HoldingRow[], otherAssets: OtherAsset
       body:
         overlaps.map((c) => `${c.name} (${eur.format(c.direct)} en direct + ~${eur.format(c.viaFunds)} via tes ETF)`).join(", ") +
         ". Tu détiens déjà ces sociétés dans ton ETF : les acheter en direct augmente leur poids sans ajouter de diversification.",
+      action: `N'achète plus en direct ${overlaps.map((c) => c.name).join(", ")} : ton ETF les contient déjà`,
+      criterion: "diversification",
     });
   }
 
@@ -407,12 +467,16 @@ export function analyzePortfolio(holdings: HoldingRow[], otherAssets: OtherAsset
       level: "attention",
       title: "Aucun matelas de sécurité défini",
       body: "Indique dans Dépenses le ou les livrets qui servent d'épargne de précaution : de l'argent disponible sans risque en cas d'imprévu, pour ne pas avoir à vendre tes placements au mauvais moment.",
+      action: "Choisis dans Dépenses le livret qui sert de matelas de sécurité",
+      criterion: "safety",
     });
   } else if (cushion.monthsCovered === null) {
     advice.push({
       level: "info",
       title: `Matelas de sécurité : ${eur.format(cushion.amount)}`,
       body: "Ajoute tes charges du mois dans Dépenses pour savoir combien de mois ce matelas couvre. L'usage est de garder 3 à 6 mois de dépenses.",
+      action: "Saisis tes charges du mois dans Dépenses pour dimensionner ton matelas",
+      criterion: "safety",
     });
   } else {
     const months = cushion.monthsCovered;
@@ -431,6 +495,12 @@ export function analyzePortfolio(holdings: HoldingRow[], otherAssets: OtherAsset
                 ? ` Au rythme de ${eur.format(cushion.monthlyContribution)} par mois, il sera complet vers ${monthYear.format(new Date(cushion.reachDate))}.`
                 : " Programme un virement mensuel vers ce livret (dans Dépenses, catégorie Épargne) pour savoir quand il sera complet."
             } Tant qu'il n'est pas complet, alimente-le avant d'ajouter de l'argent en bourse, pour ne pas avoir à vendre au mauvais moment.`,
+      ...(months < cushion.targetMonths && {
+        action: cushion.reachDate
+          ? `Complète ton matelas de sécurité (encore ${eur.format(missing)}) avant d'investir davantage en bourse`
+          : `Programme un virement mensuel vers ton matelas de sécurité (encore ${eur.format(missing)} à mettre de côté)`,
+        criterion: "safety" as const,
+      }),
     });
   }
 
@@ -441,6 +511,8 @@ export function analyzePortfolio(holdings: HoldingRow[], otherAssets: OtherAsset
       level: "info",
       title: `Livret Jeune rempli à ${pct(livretJeune.value / LIVRET_JEUNE_CAP)}`,
       body: `${eur.format(livretJeune.value)} sur un plafond de ${eur.format(LIVRET_JEUNE_CAP)}. Son taux est au moins égal à celui du Livret A et l'argent reste disponible à tout moment : il peut porter une partie de ton matelas à la place de tes autres livrets (${eur.format(otherLivrets)} actuellement).`,
+      action: `Remplis ton Livret Jeune jusqu'au plafond (encore ${eur.format(LIVRET_JEUNE_CAP - livretJeune.value)}) avec l'argent de tes autres livrets`,
+      criterion: "tax",
     });
   }
 
@@ -450,6 +522,8 @@ export function analyzePortfolio(holdings: HoldingRow[], otherAssets: OtherAsset
       level: "attention",
       title: "Des titres éligibles au PEA sont sur ton CTO",
       body: `${ctoEligible.map((l) => l.name).join(", ")} : sur le PEA, les plus-values seraient exonérées d'impôt sur le revenu après 5 ans. Pense au PEA pour tes prochains achats de ces titres.`,
+      action: `Achète désormais ${ctoEligible.map((l) => l.name).join(", ")} sur ton PEA plutôt que sur ton CTO`,
+      criterion: "tax",
     });
   } else if (holdingLines.some((l) => l.accountType === "CTO") && holdingLines.some((l) => l.accountType === "PEA")) {
     advice.push({
@@ -475,6 +549,8 @@ export function analyzePortfolio(holdings: HoldingRow[], otherAssets: OtherAsset
       level: cryptoShare > 0.1 ? "important" : "attention",
       title: `Crypto : ${pct(cryptoShare)} du patrimoine`,
       body: "Au-delà de 5 %, une chute de 75 % (déjà arrivée plusieurs fois) se voit nettement sur ton patrimoine total.",
+      action: "Ne renforce plus la crypto tant qu'elle dépasse 5 % de ton patrimoine",
+      criterion: "resilience",
     });
   }
 
@@ -486,6 +562,8 @@ export function analyzePortfolio(holdings: HoldingRow[], otherAssets: OtherAsset
         level: "info",
         title: `${small.length} petites lignes de moins de 2 % chacune`,
         body: `${small.map((l) => l.name).join(", ")} : ${eur.format(smallTotal)} au total. Elles n'ont presque pas d'effet sur ton résultat, mais compliquent le suivi. Soit tu les assumes comme des paris « satellites », soit tu simplifies autour de tes ETF.`,
+        action: "Simplifie : n'ouvre plus de petites lignes et regroupe tes versements sur tes ETF",
+        criterion: "diversification",
       });
     }
   }
@@ -506,8 +584,133 @@ export function analyzePortfolio(holdings: HoldingRow[], otherAssets: OtherAsset
     });
   }
 
+  // ---- Grades out of 10 ----
+  const criteria: ScoreCriterion[] = [];
+
+  if (invested > 0) {
+    let score = 10;
+    const notes: string[] = [];
+    const stockShare = biggestStock && equity > 0 ? biggestStock.value / equity : 0;
+    if (stockShare > 0.05) {
+      score -= clamp((stockShare - 0.05) * 15, 0, 4);
+      notes.push(`${biggestStock!.name} fait ${pct(stockShare)} de tes actions`);
+    }
+    const sectorExcess = Math.max(0, ...sectors.map((s) => s.pct - (s.benchmark ?? 0)));
+    if (sectorExcess > 0.05) {
+      score -= clamp((sectorExcess - 0.05) * 12, 0, 3);
+      notes.push("un secteur est surpondéré");
+    }
+    if (classifiedEquity > 0) {
+      const missing = regions.filter((x) => x.value < 1 && (x.benchmark ?? 0) >= 0.03).length;
+      score -= Math.min(1.5, missing * 0.5);
+      const europe = regions.find((x) => x.key === "europe");
+      if (europe && europe.pct > 2 * (europe.benchmark ?? 0)) score -= 1;
+      if (missing > 0 || (europe && europe.pct > 2 * (europe.benchmark ?? 0))) notes.push("la répartition géographique s'éloigne du marché mondial");
+    }
+    if (holdingLines.filter((l) => l.value / invested < 0.02).length >= 3) score -= 0.5;
+    criteria.push({
+      key: "diversification",
+      label: SCORE_LABELS.diversification,
+      score: grade(score),
+      summary: notes.length ? `Points faibles : ${notes.join(", ")}.` : "Tes placements sont bien répartis entre sociétés, secteurs et pays.",
+    });
+  }
+
+  {
+    let score: number;
+    let summary: string;
+    if (cushion.accounts.length === 0) {
+      score = 2;
+      summary = "Aucun livret n'est désigné comme épargne de précaution.";
+    } else if (cushion.monthsCovered === null || !cushion.target) {
+      score = 5;
+      summary = `${eur.format(cushion.amount)} de côté, mais sans charges saisies on ne sait pas combien de mois ils couvrent.`;
+    } else {
+      const ratio = clamp(cushion.amount / cushion.target, 0, 1);
+      score = cushion.amount > 0 ? 1 + 9 * ratio : 0;
+      summary =
+        ratio >= 1
+          ? `Matelas complet : ${cushion.monthsCovered.toFixed(1).replace(".", ",")} mois de dépenses.`
+          : `${cushion.monthsCovered.toFixed(1).replace(".", ",")} mois de dépenses couverts sur ${cushion.targetMonths} visés.`;
+    }
+    criteria.push({ key: "safety", label: SCORE_LABELS.safety, score: grade(score), summary });
+  }
+
+  {
+    let score = 10;
+    const notes: string[] = [];
+    if (ctoEligible.length > 0) {
+      score -= 3;
+      notes.push("des titres éligibles au PEA sont sur le CTO");
+    }
+    const ctoEquity = holdingLines.filter((l) => l.accountType === "CTO" && l.assetClass === "actions").reduce((s, l) => s + l.value, 0);
+    if (ctoEquity > 0 && !holdingLines.some((l) => l.accountType === "PEA")) {
+      score -= 3;
+      notes.push("tes actions sont sur un CTO sans PEA à côté");
+    }
+    if (livretJeune && livretJeune.value < LIVRET_JEUNE_CAP && otherLivrets > 0) {
+      score -= 1;
+      notes.push("le Livret Jeune n'est pas plein");
+    }
+    criteria.push({
+      key: "tax",
+      label: SCORE_LABELS.tax,
+      score: grade(score),
+      summary: notes.length ? `À optimiser : ${notes.join(", ")}.` : "Tes placements sont dans les enveloppes les plus avantageuses.",
+    });
+  }
+
+  if (invested > 0) {
+    const target = PROFILE_TARGET[riskProfile];
+    const diff = riskLevel - target;
+    criteria.push({
+      key: "fit",
+      label: SCORE_LABELS.fit,
+      score: grade(10 - 2 * Math.abs(diff)),
+      summary:
+        Math.abs(diff) <= 1
+          ? `Le risque de tes placements (${riskLevel}/10) correspond à ton profil ${PROFILE_LABEL[riskProfile]}.`
+          : `Risque de ${riskLevel}/10 pour un profil ${PROFILE_LABEL[riskProfile]} (vers ${target}/10) : ${diff > 0 ? "trop risqué" : "trop prudent"}.`,
+    });
+    if (Math.abs(diff) >= 2) {
+      advice.push({
+        level: "attention",
+        title: diff > 0 ? "Tes placements sont plus risqués que ton profil" : "Tes placements sont plus prudents que ton profil",
+        body:
+          diff > 0
+            ? `Niveau de risque ${riskLevel}/10 alors qu'un profil ${PROFILE_LABEL[riskProfile]} vise environ ${target}/10. Une baisse forte des marchés te toucherait plus que ce que tu as indiqué accepter.`
+            : `Niveau de risque ${riskLevel}/10 alors qu'un profil ${PROFILE_LABEL[riskProfile]} vise environ ${target}/10. Sur un horizon long, une part plus grande en actions (ETF) rapporterait davantage.`,
+        action:
+          diff > 0
+            ? "Réduis la part des titres les plus volatils (actions isolées, crypto) au profit d'ETF larges"
+            : "Augmente progressivement la part d'ETF actions dans tes versements",
+        criterion: "fit",
+      });
+    }
+  }
+
+  {
+    const worst = stress[0];
+    const loss = worst ? Math.abs(Math.min(worst.pct, 0)) : 0;
+    criteria.push({
+      key: "resilience",
+      label: SCORE_LABELS.resilience,
+      score: grade(10 - loss * 20),
+      summary: worst
+        ? `Pire scénario testé (${worst.label.toLowerCase()}) : ${pct(loss)} de ton patrimoine perdu.`
+        : "Aucun scénario de crise ne touche fortement ton patrimoine.",
+    });
+  }
+
+  const weight = criteria.reduce((s, c) => s + SCORE_WEIGHTS[c.key], 0);
+  const scores: Scores = {
+    overall: grade(weight > 0 ? criteria.reduce((s, c) => s + c.score * SCORE_WEIGHTS[c.key], 0) / weight : 0),
+    criteria,
+  };
+
   const order: Record<AdviceLevel, number> = { important: 0, attention: 1, info: 2, ok: 3 };
   advice.sort((a, b) => order[a.level] - order[b.level]);
+  const plan = advice.filter((a) => a.action && a.level !== "ok");
 
   return {
     total,
@@ -527,5 +730,7 @@ export function analyzePortfolio(holdings: HoldingRow[], otherAssets: OtherAsset
     stress,
     unclassified,
     advice,
+    scores,
+    plan,
   };
 }

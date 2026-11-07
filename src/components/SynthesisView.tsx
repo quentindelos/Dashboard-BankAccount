@@ -211,7 +211,7 @@ export default function SynthesisView({
             <span className="kpi-icon" aria-hidden="true">🎯</span>
             <span className="label">Niveau de risque des placements</span>
             <span className="value">
-              {riskLevel}/7 <span className="secondary" style={{ fontSize: 15, fontWeight: 500 }}>{riskLabel(riskLevel)}</span>
+              {riskLevel}/10 <span className="secondary" style={{ fontSize: 15, fontWeight: 500 }}>{riskLabel(riskLevel)}</span>
             </span>
             <RiskMeter level={riskLevel} />
             <span className="hint">
@@ -264,9 +264,6 @@ export default function SynthesisView({
         <section className="section">
           <div className="section-title">
             <h2>Mes positions</h2>
-            <span className="muted">
-              {positions.length} lignes · {eur0.format(invested)}
-            </span>
           </div>
           <div className="position-scroller">
             {positions.map((p) => (
@@ -310,9 +307,6 @@ export default function SynthesisView({
       <section className="section">
         <div className="section-title">
           <h2>À retenir</h2>
-          <Link href="/analysis" className="muted" style={{ fontSize: 13 }}>
-            Analyse complète
-          </Link>
         </div>
         <AdviceList advice={advice} limit={3} moreHref="/analysis" />
       </section>

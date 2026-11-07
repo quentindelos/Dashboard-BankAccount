@@ -35,7 +35,7 @@ export async function buildAssistantContext(profile: AssistantSettings, now = ne
     loadProfile(),
   ]);
   const gains = computeGains(data);
-  const analysis = analyzePortfolio(data.holdings, data.otherAssets, settings);
+  const analysis = analyzePortfolio(data.holdings, data.otherAssets, settings, profile.risk);
   const latest = data.series.at(-1);
   const out: string[] = [];
   const line = (s = "") => out.push(s);
@@ -140,10 +140,19 @@ export async function buildAssistantContext(profile: AssistantSettings, now = ne
     );
   }
   line(
-    `- Volatilité estimée : ${pct(analysis.volatility)} pour tout le patrimoine, ${pct(analysis.investedVolatility)} pour les placements ; risque ${analysis.riskLevel}/7`
+    `- Volatilité estimée : ${pct(analysis.volatility)} pour tout le patrimoine, ${pct(analysis.investedVolatility)} pour les placements ; risque ${analysis.riskLevel}/10`
   );
   for (const s of analysis.stress) line(`- Scénario « ${s.label} » : ${signed(s.impact)} (${pct(s.pct)})`);
   if (analysis.unclassified.length) line(`- Lignes non classées : ${analysis.unclassified.join(", ")}`);
+  line();
+
+  // ---- Grades shown on the Analyse page, so the assistant talks about the same thing
+  line(`## Note du portefeuille (page Analyse) : ${String(analysis.scores.overall).replace(".", ",")}/10`);
+  for (const cr of analysis.scores.criteria) line(`- ${cr.label} : ${String(cr.score).replace(".", ",")}/10. ${cr.summary}`);
+  if (analysis.plan.length) {
+    line("Plan d'action affiché à l'utilisateur :");
+    analysis.plan.forEach((p, i) => line(`${i + 1}. ${p.action}`));
+  }
   line();
 
   // ---- Safety cushion

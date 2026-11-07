@@ -2,6 +2,7 @@ import Link from "next/link";
 import { loadPortfolio } from "@/lib/portfolio";
 import { analyzePortfolio } from "@/lib/analysis";
 import { getSettings } from "@/lib/settings";
+import { loadAssistantSettings } from "@/lib/assistantSettings";
 import { accountColors } from "@/lib/accountTypes";
 import { findInstrument } from "@/lib/instruments";
 import { institutionLogo, instrumentLogo } from "@/lib/logos";
@@ -16,7 +17,12 @@ export default async function DashboardPage() {
   await refreshValuations();
   const dataP = loadPortfolio();
   const settingsP = getSettings();
-  const [data, settings, checklist] = await Promise.all([dataP, settingsP, buildChecklist(new Date(), { data: dataP, settings: settingsP })]);
+  const [data, settings, checklist, assistant] = await Promise.all([
+    dataP,
+    settingsP,
+    buildChecklist(new Date(), { data: dataP, settings: settingsP }),
+    loadAssistantSettings(),
+  ]);
 
   if (data.accounts.length === 0) {
     return (
@@ -30,7 +36,7 @@ export default async function DashboardPage() {
     );
   }
 
-  const analysis = analyzePortfolio(data.holdings, data.otherAssets, settings);
+  const analysis = analyzePortfolio(data.holdings, data.otherAssets, settings, assistant.risk);
   // One chart series per account (named, never lumped into "Autre").
   const colors = accountColors(data.accounts);
   const accountSeries = data.accounts

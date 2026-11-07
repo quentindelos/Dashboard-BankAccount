@@ -1,16 +1,32 @@
 import Link from "next/link";
 import { loadPortfolio } from "@/lib/portfolio";
-import { analyzePortfolio } from "@/lib/analysis";
+import { SCORE_LABELS, analyzePortfolio } from "@/lib/analysis";
 import { getSettings } from "@/lib/settings";
+import { loadAssistantSettings } from "@/lib/assistantSettings";
 import { accountTypeCssVar } from "@/lib/accountTypes";
 import { companyLogo } from "@/lib/logos";
+import { scoreLabel, scoreTone } from "@/lib/grades";
+import { RISK_LABEL } from "@/lib/assistantShared";
 import Logo from "@/components/Logo";
 import AnimatedNumber from "@/components/AnimatedNumber";
-import { AdviceList, Allocation, HBars, RiskMeter, assetClassColor, eur0, formatPct, riskLabel, signed } from "@/components/ui";
+import {
+  ActionPlan,
+  AdviceList,
+  Allocation,
+  HBars,
+  RiskMeter,
+  ScoreBar,
+  ScoreRing,
+  assetClassColor,
+  eur0,
+  formatPct,
+  riskLabel,
+  signed,
+} from "@/components/ui";
 
 export default async function AnalysisPage() {
-  const [data, settings] = await Promise.all([loadPortfolio(), getSettings()]);
-  const a = analyzePortfolio(data.holdings, data.otherAssets, settings);
+  const [data, settings, assistant] = await Promise.all([loadPortfolio(), getSettings(), loadAssistantSettings()]);
+  const a = analyzePortfolio(data.holdings, data.otherAssets, settings, assistant.risk);
 
   if (a.total <= 0) {
     return (
@@ -33,18 +49,48 @@ export default async function AnalysisPage() {
         <div>
           <h1>Analyse</h1>
           <p className="muted">
-            Exposition, risques et pistes d'optimisation
+            Note, plan d&apos;action, exposition et risques
             {snapshotDate ? ` · positions au ${new Date(snapshotDate).toLocaleDateString("fr-FR")}` : ""}
           </p>
         </div>
+        <a className="btn btn-primary" href="/api/report" download>
+          Exporter en PDF
+        </a>
       </div>
 
+      {/* ---- Grades ---- */}
+      <section className="card score-card">
+        <div className={`score-overall tone-${scoreTone(a.scores.overall)}`}>
+          <span className="label muted">Note du portefeuille</span>
+          <ScoreRing score={a.scores.overall} />
+          <span className="score-word">{scoreLabel(a.scores.overall)}</span>
+        </div>
+        <div className="score-criteria">
+          {a.scores.criteria.map((c) => (
+            <ScoreBar key={c.key} label={c.label} score={c.score} summary={c.summary} />
+          ))}
+        </div>
+      </section>
+
+      {/* ---- Action plan ---- */}
+      <section className="section">
+        <div className="section-title">
+          <h2>Ton plan d&apos;action</h2>
+          <span className="muted">Dans l&apos;ordre, ce qui fera le plus progresser ta note</span>
+        </div>
+        <ActionPlan plan={a.plan} labels={SCORE_LABELS} />
+        <p className="muted" style={{ fontSize: 13, marginTop: 10 }}>
+          L&apos;adéquation au profil compare ton risque à ton profil « {RISK_LABEL[assistant.risk]} », réglable dans les paramètres du{" "}
+          <Link href="/assistant">Conseiller</Link>.
+        </p>
+      </section>
+
       {/* ---- KPIs ---- */}
-      <div className="grid grid-stats">
+      <div className="grid grid-stats section">
         <div className="card stat-tile">
           <span className="label">Niveau de risque des placements</span>
           <span className="value">
-            {a.riskLevel}/7 <span className="secondary" style={{ fontSize: 15, fontWeight: 500 }}>{riskLabel(a.riskLevel)}</span>
+            {a.riskLevel}/10 <span className="secondary" style={{ fontSize: 15, fontWeight: 500 }}>{riskLabel(a.riskLevel)}</span>
           </span>
           <RiskMeter level={a.riskLevel} />
           <span className="hint">Volatilité estimée ~{formatPct(a.investedVolatility, 0)} / an</span>
@@ -78,8 +124,8 @@ export default async function AnalysisPage() {
       {/* ---- Advice ---- */}
       <section className="section">
         <div className="section-title">
-          <h2>Conseils et optimisation</h2>
-          <span className="muted">{a.advice.length} points</span>
+          <h2>Tous les constats</h2>
+          <span className="muted">{a.advice.length} points, y compris ce qui va bien</span>
         </div>
         <AdviceList advice={a.advice} />
       </section>
