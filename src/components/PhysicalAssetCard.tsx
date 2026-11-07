@@ -162,23 +162,23 @@ function VehicleCard({ accountId, name, details, photo }: { accountId: string; n
             </div>
             <div className="field">
               <label htmlFor="v-make">Marque</label>
-              <input id="v-make" value={form.make} onChange={(e) => set("make", e.target.value)} placeholder="ex : Peugeot" required maxLength={60} />
+              <input id="v-make" value={form.make} onChange={(e) => set("make", e.target.value)} placeholder="ex : Renault" required maxLength={60} />
             </div>
             <div className="field">
               <label htmlFor="v-model">Modèle</label>
-              <input id="v-model" value={form.model} onChange={(e) => set("model", e.target.value)} placeholder="ex : 106" required maxLength={80} />
+              <input id="v-model" value={form.model} onChange={(e) => set("model", e.target.value)} placeholder="ex : Clio" required maxLength={80} />
             </div>
             <div className="field">
               <label htmlFor="v-version">Version, finition</label>
-              <input id="v-version" value={form.version ?? ""} onChange={(e) => set("version", e.target.value)} placeholder="ex : S16 1.6 16V" maxLength={120} />
+              <input id="v-version" value={form.version ?? ""} onChange={(e) => set("version", e.target.value)} placeholder="ex : 1.2 TCe 100 Intens" maxLength={120} />
             </div>
             <div className="field">
               <label htmlFor="v-year">Année</label>
-              <input id="v-year" value={form.year} onChange={(e) => set("year", e.target.value)} inputMode="numeric" placeholder="ex : 1998" required />
+              <input id="v-year" value={form.year} onChange={(e) => set("year", e.target.value)} inputMode="numeric" placeholder="ex : 2015" required />
             </div>
             <div className="field">
               <label htmlFor="v-km">Kilométrage</label>
-              <input id="v-km" value={form.mileage} onChange={(e) => set("mileage", e.target.value)} inputMode="numeric" placeholder="ex : 150000" required />
+              <input id="v-km" value={form.mileage} onChange={(e) => set("mileage", e.target.value)} inputMode="numeric" placeholder="ex : 85000" required />
             </div>
             <div className="field">
               <label htmlFor="v-cond">État</label>

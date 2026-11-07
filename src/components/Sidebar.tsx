@@ -59,9 +59,19 @@ const assistantIcon = (
   </svg>
 );
 
+const assetsIcon = (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M5 16H3v-4l2-5h11l3 5h2v4h-2" />
+    <circle cx="7.5" cy="16.5" r="2" />
+    <circle cx="16.5" cy="16.5" r="2" />
+    <path d="M9.5 16.5h5" />
+  </svg>
+);
+
 const links: { href: string; label: string; icon: React.ReactNode; tag?: string; title?: string }[] = [
   { href: "/dashboard", label: "Synthèse", icon: icons.synthese },
   { href: "/accounts", label: "Comptes", icon: icons.comptes },
+  { href: "/assets", label: "Biens", icon: assetsIcon, title: "Biens : véhicules et or physique" },
   { href: "/expenses", label: "Dépenses", icon: depensesIcon },
   { href: "/analysis", label: "Analyse", icon: icons.analyse },
   { href: "/projection", label: "Projection", icon: projectionIcon },

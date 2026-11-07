@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { accountTypeLabel, isTradeRepublic } from "@/lib/accountTypes";
+import { PHYSICAL_TYPES, accountTypeLabel, isTradeRepublic } from "@/lib/accountTypes";
 import TimeSeriesChart, {
   RangeTabs,
   ZoomHint,
@@ -175,7 +175,7 @@ export default function AccountDetail({
   return (
     <>
       <p style={{ margin: "0 0 14px" }}>
-        <Link href="/accounts">&larr; Retour aux comptes</Link>
+        {PHYSICAL_TYPES.has(account.type) ? <Link href="/assets">&larr; Retour aux biens</Link> : <Link href="/accounts">&larr; Retour aux comptes</Link>}
       </p>
       <div className="card">
         <div className="hero-date">

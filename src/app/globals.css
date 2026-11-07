@@ -2750,3 +2750,135 @@ tbody tr:last-child td {
     animation: none;
   }
 }
+
+/* ---------- Biens page ---------- */
+.asset-kinds {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.asset-kind {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.asset-kind:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.asset-kind svg {
+  color: var(--accent);
+}
+
+.asset-kind .muted {
+  font-size: 13px;
+}
+
+.asset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.asset-grid > .card + .card {
+  margin-top: 0;
+}
+
+.asset-card {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.asset-card-link {
+  display: flex;
+  flex-direction: column;
+  color: inherit;
+  flex: 1;
+}
+
+.asset-card-photo {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  display: block;
+  background: var(--surface-2);
+}
+
+.asset-card-placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--asset-vehicle);
+}
+
+.asset-card-placeholder.gold {
+  color: var(--asset-gold);
+}
+
+.asset-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 14px 18px 4px;
+}
+
+.asset-card-kind {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.asset-card-name {
+  font-size: 17px;
+}
+
+.asset-card-desc,
+.asset-card-how {
+  font-size: 13px;
+}
+
+.asset-card-value {
+  font-size: 24px;
+  font-weight: 700;
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.asset-card-actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px 18px 16px;
+}
+
+.asset-empty {
+  text-align: center;
+}
+
+.asset-empty-icons {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.asset-empty .muted {
+  max-width: 460px;
+  margin: 0 auto;
+}

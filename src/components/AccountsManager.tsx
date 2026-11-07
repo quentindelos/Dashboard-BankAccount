@@ -13,10 +13,12 @@ interface AccountRow {
   type: string;
   institution: string | null;
   logo?: LogoKey | null;
-  photoUrl?: string | null;
   latestValue: number | null;
   latestDate: string | null;
 }
+
+// Vehicles and gold have their own page (Biens).
+const ACCOUNT_TYPES = ACCOUNT_TYPE_ORDER.filter((t) => !PHYSICAL_TYPES.has(t));
 
 const currencyFmt = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });
 const dateFmt = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
@@ -26,7 +28,7 @@ export default function AccountsManager({ initialAccounts }: { initialAccounts: 
   const [accounts, setAccounts] = useState(initialAccounts);
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
-  const [type, setType] = useState<string>(ACCOUNT_TYPE_ORDER[0]);
+  const [type, setType] = useState<string>(ACCOUNT_TYPES[0]);
   const [institution, setInstitution] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -39,16 +41,11 @@ export default function AccountsManager({ initialAccounts }: { initialAccounts: 
       const res = await fetch("/api/accounts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, type, institution: PHYSICAL_TYPES.has(type) ? "" : institution }),
+        body: JSON.stringify({ name, type, institution }),
       });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "Erreur lors de la création.");
-        return;
-      }
-      // A vehicle or gold is described on its own page: open it right away.
-      if (PHYSICAL_TYPES.has(type)) {
-        router.push(`/accounts/${data.account.id}`);
         return;
       }
       setAccounts((prev) => [...prev, { ...data.account, latestValue: null, latestDate: null }]);
@@ -83,35 +80,22 @@ export default function AccountsManager({ initialAccounts }: { initialAccounts: 
           {error && <p className="error-text">{error}</p>}
           <div className="field">
             <label htmlFor="name">Nom du compte</label>
-            <input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={type === "VEHICULE" ? "ex : 106 S16" : type === "OR" ? "ex : Napoléons" : "ex : Livret A"}
-              required
-              maxLength={100}
-            />
+            <input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="ex : Livret A" required maxLength={100} />
           </div>
           <div className="field">
             <label htmlFor="type">Type</label>
             <select id="type" value={type} onChange={(e) => setType(e.target.value)}>
-              {ACCOUNT_TYPE_ORDER.map((t) => (
+              {ACCOUNT_TYPES.map((t) => (
                 <option key={t} value={t}>
                   {accountTypeLabel(t)}
                 </option>
               ))}
             </select>
           </div>
-          {PHYSICAL_TYPES.has(type) ? (
-            <p className="muted" style={{ fontSize: 13 }}>
-              Tu décriras {type === "VEHICULE" ? "le véhicule (et sa photo)" : "tes pièces ou lingots"} juste après : sa valeur sera calculée automatiquement.
-            </p>
-          ) : (
-            <div className="field">
-              <label htmlFor="institution">Établissement (optionnel)</label>
-              <input id="institution" value={institution} onChange={(e) => setInstitution(e.target.value)} placeholder="ex: Boursorama" maxLength={100} />
-            </div>
-          )}
+          <div className="field">
+            <label htmlFor="institution">Établissement (optionnel)</label>
+            <input id="institution" value={institution} onChange={(e) => setInstitution(e.target.value)} placeholder="ex : Boursorama" maxLength={100} />
+          </div>
           <button className="btn btn-primary" disabled={loading} type="submit">
             {loading ? "..." : "Créer"}
           </button>
@@ -139,12 +123,7 @@ export default function AccountsManager({ initialAccounts }: { initialAccounts: 
               <tr key={a.id}>
                 <td>
                   <span className="name-with-logo">
-                    {a.photoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img className="asset-avatar" src={a.photoUrl} alt="" width={26} height={26} />
-                    ) : (
-                      <Logo logo={a.logo} name={a.institution ?? a.name} size={26} />
-                    )}
+                    <Logo logo={a.logo} name={a.institution ?? a.name} size={26} />
                     <Link href={`/accounts/${a.id}`}>{a.name}</Link>
                   </span>
                 </td>

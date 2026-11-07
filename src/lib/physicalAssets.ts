@@ -73,7 +73,7 @@ export const vehicleDetailsSchema = z.object({
 export type VehicleDetails = z.infer<typeof vehicleDetailsSchema>;
 export type VehicleEstimate = z.infer<typeof estimateSchema>;
 
-/** "Peugeot 106 S16, 1998, 150 000 km" */
+/** "Renault Clio 1.2 TCe, 2015, 85 000 km" */
 export function vehicleTitle(v: VehicleDetails): string {
   const km = new Intl.NumberFormat("fr-FR").format(v.mileage);
   return `${v.make} ${v.model}${v.version ? ` ${v.version}` : ""}, ${v.year}, ${km} km`;

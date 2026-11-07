@@ -121,7 +121,8 @@ livrets restent en escalier.
 
 ### Or physique et véhicules
 
-Deux types de comptes décrivent des biens plutôt que des placements :
+La page **Biens**, séparée des comptes, suit ce que tu possèdes plutôt que
+des placements (bouton « + Ajouter un bien ») :
 
 - **Or physique** : pièces (Napoléon, Krugerrand...) ou lingots en grammes.
   La valeur suit le cours de l'or du jour (Yahoo Finance, converti en
