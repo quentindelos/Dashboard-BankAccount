@@ -2882,3 +2882,36 @@ tbody tr:last-child td {
   max-width: 460px;
   margin: 0 auto;
 }
+
+/* Range of a vehicle estimate: low to high, with the estimate marked. */
+.estimate-range {
+  max-width: 420px;
+  margin: 4px 0 12px;
+}
+
+.estimate-range-track {
+  position: relative;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 25%, transparent), color-mix(in srgb, var(--accent) 60%, transparent));
+}
+
+.estimate-range-mark {
+  position: absolute;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 3px solid var(--surface-solid);
+  box-shadow: 0 0 0 1px var(--accent);
+  transform: translate(-50%, -50%);
+}
+
+.estimate-range-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}

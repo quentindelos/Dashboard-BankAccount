@@ -226,6 +226,17 @@ function VehicleCard({ accountId, name, details, photo }: { accountId: string; n
               {eur0.format(estimate.value)}
               <span className="muted"> · entre {eur0.format(estimate.low)} et {eur0.format(estimate.high)}</span>
             </p>
+            {estimate.high > estimate.low && (
+              <div className="estimate-range" role="img" aria-label={`Fourchette de ${eur0.format(estimate.low)} à ${eur0.format(estimate.high)}, estimation ${eur0.format(estimate.value)}`}>
+                <div className="estimate-range-track">
+                  <span className="estimate-range-mark" style={{ left: `${((estimate.value - estimate.low) / (estimate.high - estimate.low)) * 100}%` }} />
+                </div>
+                <div className="estimate-range-labels">
+                  <span>{eur0.format(estimate.low)}</span>
+                  <span>{eur0.format(estimate.high)}</span>
+                </div>
+              </div>
+            )}
             {estimate.summary && <p className="secondary" style={{ margin: "0 0 8px" }}>{estimate.summary}</p>}
             <p className="muted" style={{ fontSize: 12, margin: 0 }}>
               Estimée le {dateFmt.format(new Date(estimate.date))} par {estimate.model}, à partir d&apos;annonces et de cotes trouvées sur le web.

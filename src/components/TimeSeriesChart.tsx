@@ -131,6 +131,7 @@ export default function TimeSeriesChart({
   height = 300,
   seriesLabel = "Total",
   onZoom,
+  markers = false,
 }: {
   rows: TimeRow[];
   /** When provided, draws one stacked area per series instead of the total. */
@@ -140,6 +141,8 @@ export default function TimeSeriesChart({
   seriesLabel?: string;
   /** Enables zooming: drag across the chart to select a period. */
   onZoom?: (zoom: Zoom) => void;
+  /** A dot on every value: for sparse series (a few estimates over years). */
+  markers?: boolean;
 }) {
   const chrome = useChartTheme();
   const colorOf = (c: string) => (c.startsWith("var(") ? chrome.series(c) : c);
@@ -271,6 +274,7 @@ export default function TimeSeriesChart({
             strokeWidth={2.5}
             fill="url(#fill-total)"
             isAnimationActive={false}
+            dot={markers ? { r: 4, fill: chrome.line2, stroke: chrome.surface, strokeWidth: 2 } : false}
             activeDot={{ r: 5, fill: chrome.line2, stroke: chrome.surface, strokeWidth: 2 }}
           />
         )}

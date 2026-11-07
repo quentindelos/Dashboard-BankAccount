@@ -42,6 +42,7 @@ interface PositionRow {
 
 const currencyFmt = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });
 const dateFmt = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+const monthYearFmt = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" });
 const quantityFmt = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 6 });
 
 function todayIso() {
@@ -198,6 +199,13 @@ export default function AccountDetail({
         {!period && positionsCost !== null && positionsForDate.length > 0 && (
           <Delta value={positionsTotal - positionsCost} pct={positionsCost ? (positionsTotal - positionsCost) / positionsCost : null} suffix="de plus-value latente" />
         )}
+        {!period && account.type === "VEHICULE" && entries.length > 1 && (
+          <Delta
+            value={latestValue - entries[0].value}
+            pct={entries[0].value ? (latestValue - entries[0].value) / entries[0].value : null}
+            suffix={`depuis ${monthYearFmt.format(new Date(entries[0].date))}`}
+          />
+        )}
         {!period && positions.length === 0 && contributions !== null && (
           <Delta
             value={latestValue - contributions}
@@ -222,7 +230,8 @@ export default function AccountDetail({
         </div>
         <TimeSeriesChart
           rows={chartRows}
-          curve={account.type === "LIVRET" || account.type === "VEHICULE" ? "stepAfter" : "linear"}
+          curve={account.type === "LIVRET" ? "stepAfter" : "linear"}
+          markers={account.type === "VEHICULE"}
           height={240}
           seriesLabel={account.name}
           onZoom={setZoom}
