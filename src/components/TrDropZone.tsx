@@ -9,6 +9,10 @@ type Toast = { kind: "loading"; name: string } | { kind: "ok"; result: TrImportR
 
 const hasFiles = (e: DragEvent) => Array.from(e.dataTransfer?.types ?? []).includes("Files");
 
+/** Only files that could be the export (not pictures: those are for the profile photo). */
+const mayBeExport = (e: DragEvent) =>
+  Array.from(e.dataTransfer?.items ?? []).some((item) => item.kind === "file" && !item.type.startsWith("image/"));
+
 /** Drop the Trade Republic export anywhere in the app: it is imported right
  * away and every page refreshes with the new history. */
 export default function TrDropZone() {
@@ -37,36 +41,60 @@ export default function TrDropZone() {
       }
     }
 
+    // A drag that starts inside the page (an image, a link) is never an import:
+    // browsers can report it as carrying "Files" too.
+    let internal = false;
+    const onStart = () => {
+      internal = true;
+    };
+    const onEnd = () => {
+      internal = false;
+    };
+
+    // Ignored: drags from the page, ones a component already handles (e.g. the
+    // profile photo zone calls preventDefault first), and pictures.
+    const ours = (e: DragEvent) => hasFiles(e) && !internal && !e.defaultPrevented && mayBeExport(e);
+    // A file the app doesn't take would otherwise be opened by the browser in place of the app.
+    const refuse = (e: DragEvent) => {
+      if (!hasFiles(e) || internal || e.defaultPrevented) return;
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = "none";
+    };
+
     const onEnter = (e: DragEvent) => {
-      if (!hasFiles(e)) return;
+      if (!ours(e)) return refuse(e);
       e.preventDefault();
       depth.current += 1;
       setDragging(true);
     };
     const onOver = (e: DragEvent) => {
-      if (!hasFiles(e)) return;
+      if (!ours(e)) return refuse(e);
       e.preventDefault(); // allows the drop
       if (e.dataTransfer) e.dataTransfer.dropEffect = busy.current ? "none" : "copy";
     };
     const onLeave = (e: DragEvent) => {
-      if (!hasFiles(e)) return;
+      if (!hasFiles(e) || internal) return;
       depth.current = Math.max(0, depth.current - 1);
       if (depth.current === 0) setDragging(false);
     };
     const onDrop = (e: DragEvent) => {
-      if (!hasFiles(e)) return;
-      e.preventDefault();
       depth.current = 0;
       setDragging(false);
+      if (!ours(e)) return refuse(e);
+      e.preventDefault();
       const file = e.dataTransfer?.files?.[0];
       if (file && !busy.current) upload(file);
     };
 
+    window.addEventListener("dragstart", onStart);
+    window.addEventListener("dragend", onEnd);
     window.addEventListener("dragenter", onEnter);
     window.addEventListener("dragover", onOver);
     window.addEventListener("dragleave", onLeave);
     window.addEventListener("drop", onDrop);
     return () => {
+      window.removeEventListener("dragstart", onStart);
+      window.removeEventListener("dragend", onEnd);
       window.removeEventListener("dragenter", onEnter);
       window.removeEventListener("dragover", onOver);
       window.removeEventListener("dragleave", onLeave);

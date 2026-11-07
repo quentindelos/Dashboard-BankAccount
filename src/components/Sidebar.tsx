@@ -173,7 +173,7 @@ export default function Sidebar() {
             title="Mon compte : profil et mot de passe"
           >
             <span className="avatar">
-              {me.photoUrl ? <img src={me.photoUrl} alt="" /> : (me.firstName || me.username).slice(0, 2).toUpperCase()}
+              {me.photoUrl ? <img src={me.photoUrl} alt="" draggable={false} /> :(me.firstName || me.username).slice(0, 2).toUpperCase()}
             </span>
             <span className="user-name">{me.firstName || me.username}</span>
           </Link>

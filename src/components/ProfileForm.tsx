@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { confirmDialog } from "@/components/ConfirmDialog";
+import PhotoCropper from "@/components/PhotoCropper";
 import {
   FAMILY_STATUS,
   HOUSING_STATUS,
@@ -18,10 +19,13 @@ import {
 export const PROFILE_UPDATED_EVENT = "profile-updated";
 const announce = () => window.dispatchEvent(new Event(PROFILE_UPDATED_EVENT));
 
+/** Largest picture accepted before cropping (the cropped result is small). */
+const MAX_SOURCE_BYTES = 30 * 1024 * 1024;
+
 function Avatar({ photo, label, size }: { photo: string | null; label: string; size: number }) {
   return (
     <span className="avatar" style={{ width: size, height: size, fontSize: size * 0.36 }}>
-      {photo ? <img src={profilePhotoUrl(photo)} alt="" /> : label.slice(0, 2).toUpperCase()}
+      {photo ? <img src={profilePhotoUrl(photo)} alt="" draggable={false} /> : label.slice(0, 2).toUpperCase()}
     </span>
   );
 }
@@ -62,6 +66,8 @@ export default function ProfileForm({ initial, username }: { initial: UserProfil
   const [photoBusy, setPhotoBusy] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [dropping, setDropping] = useState(false);
   const input = useRef<HTMLInputElement>(null);
 
   const set = <K extends keyof UserProfileInput>(key: K, value: UserProfileInput[K]) => {
@@ -90,14 +96,30 @@ export default function ProfileForm({ initial, username }: { initial: UserProfil
     announce();
   }
 
-  async function upload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (input.current) input.current.value = "";
+  /** A picture chosen or dropped: opens the cropper on it. */
+  function pick(file: File | undefined) {
     if (!file) return;
+    setError("");
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
+      setError("Format non pris en charge : JPEG, PNG ou WebP.");
+      return;
+    }
+    if (file.size > MAX_SOURCE_BYTES) {
+      setError("Photo trop lourde (30 Mo maximum).");
+      return;
+    }
+    // A data: URL, since the page's security policy doesn't allow blob: images.
+    const reader = new FileReader();
+    reader.onload = () => typeof reader.result === "string" && setCropSrc(reader.result);
+    reader.onerror = () => setError("Impossible de lire cette photo.");
+    reader.readAsDataURL(file);
+  }
+
+  async function upload(cropped: Blob) {
     setError("");
     setPhotoBusy(true);
     const body = new FormData();
-    body.append("photo", file);
+    body.append("photo", new File([cropped], "avatar.jpg", { type: "image/jpeg" }));
     const res = await fetch("/api/account/photo", { method: "POST", body }).catch(() => null);
     const data = res ? await res.json().catch(() => ({})) : {};
     setPhotoBusy(false);
@@ -105,8 +127,26 @@ export default function ProfileForm({ initial, username }: { initial: UserProfil
       setError(data.error ?? "Impossible d'envoyer la photo.");
       return;
     }
+    setCropSrc(null);
     setPhoto(data.photo);
     announce();
+  }
+
+  // Dropping a picture on the photo area: handled here (preventDefault tells
+  // the app-wide Trade Republic drop zone to leave it alone).
+  const isImageDrag = (e: React.DragEvent) =>
+    Array.from(e.dataTransfer.items).some((item) => item.kind === "file" && item.type.startsWith("image/"));
+  function onDragOver(e: React.DragEvent) {
+    if (!isImageDrag(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    setDropping(true);
+  }
+  function onDrop(e: React.DragEvent) {
+    setDropping(false);
+    if (!isImageDrag(e)) return;
+    e.preventDefault();
+    pick(e.dataTransfer.files[0]);
   }
 
   async function removePhoto() {
@@ -128,23 +168,53 @@ export default function ProfileForm({ initial, username }: { initial: UserProfil
         compte de ta situation (âge, foyer fiscal, logement...). Tout est facultatif.
       </p>
 
-      <div className="profile-photo">
-        <Avatar photo={photo} label={form.firstName || username} size={88} />
+      <div
+        className={`profile-photo${dropping ? " dropping" : ""}`}
+        onDragEnter={onDragOver}
+        onDragOver={onDragOver}
+        onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setDropping(false)}
+        onDrop={onDrop}
+      >
+        <button
+          type="button"
+          className="profile-avatar-btn"
+          onClick={() => (photo ? setCropSrc(profilePhotoUrl(photo)) : input.current?.click())}
+          disabled={photoBusy}
+          title={photo ? "Recadrer la photo" : "Ajouter une photo"}
+        >
+          <Avatar photo={photo} label={form.firstName || username} size={88} />
+        </button>
         <div className="profile-photo-actions">
-          <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" onChange={upload} hidden />
+          <input
+            ref={input}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(e) => {
+              pick(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+            hidden
+          />
           <button type="button" className="btn" disabled={photoBusy} onClick={() => input.current?.click()}>
-            {photoBusy ? "..." : photo ? "Changer la photo" : "Ajouter une photo"}
+            {photo ? "Changer la photo" : "Ajouter une photo"}
           </button>
+          {photo && (
+            <button type="button" className="btn" disabled={photoBusy} onClick={() => setCropSrc(profilePhotoUrl(photo))}>
+              Recadrer
+            </button>
+          )}
           {photo && (
             <button type="button" className="btn btn-ghost btn-danger" disabled={photoBusy} onClick={removePhoto}>
               Retirer
             </button>
           )}
           <span className="muted" style={{ fontSize: 12 }}>
-            JPEG, PNG ou WebP, 5 Mo maximum.
+            JPEG, PNG ou WebP. Tu peux aussi glisser une photo ici.
           </span>
         </div>
       </div>
+
+      {cropSrc && <PhotoCropper src={cropSrc} busy={photoBusy} onCancel={() => setCropSrc(null)} onConfirm={upload} />}
 
       <form onSubmit={save}>
         {error && <p className="error-text">{error}</p>}

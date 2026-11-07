@@ -2658,7 +2658,105 @@ tbody tr:last-child td {
   align-items: center;
   gap: 18px;
   flex-wrap: wrap;
-  margin: 4px 0 20px;
+  margin: 4px 0 20px -10px;
+  padding: 10px;
+  /* Shown while a picture is dragged over it. */
+  border: 2px dashed transparent;
+  border-radius: 16px;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.profile-photo.dropping {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.profile-avatar-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.profile-avatar-btn:hover:not(:disabled) {
+  transform: scale(1.04);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.profile-avatar-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* Photo cropper */
+.modal-backdrop.cropper-backdrop {
+  z-index: 55;
+}
+
+.modal.cropper {
+  max-width: 360px;
+}
+
+.cropper h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+
+.cropper > .muted {
+  margin: 0 0 16px;
+  font-size: 13px;
+}
+
+.cropper-view {
+  position: relative;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--surface-3);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.cropper-view:active {
+  cursor: grabbing;
+}
+
+.cropper-view:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.cropper-view img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: none;
+  pointer-events: none;
+}
+
+/* Darkens everything outside the circle that becomes the photo. */
+.cropper-mask {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.55);
+  outline: 2px solid rgba(255, 255, 255, 0.85);
+  pointer-events: none;
+}
+
+.cropper-zoom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.cropper-zoom input[type="range"] {
+  flex: 1;
+  accent-color: var(--accent);
 }
 
 .profile-photo-actions {
