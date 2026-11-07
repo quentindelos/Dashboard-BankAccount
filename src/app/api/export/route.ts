@@ -35,6 +35,7 @@ export async function GET() {
       active: e.active,
       note: e.note,
       accountId: e.accountId,
+      inCushion: e.inCushion,
     })),
     settings: Object.fromEntries(settings.map((s) => [s.key, s.value])),
     exportedAt: new Date().toISOString(),

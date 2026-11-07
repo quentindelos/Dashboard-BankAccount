@@ -3,12 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { eur0 } from "@/components/ui";
-
-interface Result {
-  transactions: number;
-  accounts: { account: string; from: string; days: number; value: number; positions: number }[];
-  unpriced: string[];
-}
+import { importTrExport, type TrImportResult } from "@/lib/trImportClient";
 
 const dateFmt = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 
@@ -17,7 +12,7 @@ export default function TradeRepublicImport() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [result, setResult] = useState<Result | null>(null);
+  const [result, setResult] = useState<TrImportResult | null>(null);
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -28,18 +23,10 @@ export default function TradeRepublicImport() {
     setResult(null);
     setLoading(true);
     try {
-      const body = new FormData();
-      body.append("file", file);
-      const res = await fetch("/api/import/trade-republic/history", { method: "POST", body });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(data.error ?? "Erreur lors de l'import.");
-        return;
-      }
-      setResult(data);
+      setResult(await importTrExport(file));
       router.refresh();
-    } catch {
-      setError("Impossible d'envoyer le fichier.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur lors de l'import.");
     } finally {
       setLoading(false);
     }
@@ -51,7 +38,7 @@ export default function TradeRepublicImport() {
       <p className="secondary" style={{ marginTop: -4 }}>
         Dans Trade Republic : <strong>Relevés &gt; Exportation des transactions</strong>, sur toute la période. Envoie ici le fichier (CSV ou
         Excel) : la valeur de ton PEA, de ton CTO et de ta crypto est recalculée jour par jour avec les cours de bourse, et remplace
-        l'historique existant de ces comptes.
+        l'historique existant de ces comptes. Tu peux aussi glisser le fichier n'importe où dans l'app.
       </p>
       <input ref={inputRef} type="file" accept=".csv,.xlsx" onChange={handleFile} style={{ display: "none" }} />
       <button className="btn btn-primary" type="button" disabled={loading} onClick={() => inputRef.current?.click()}>

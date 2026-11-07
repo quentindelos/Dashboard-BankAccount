@@ -27,6 +27,7 @@ export default async function ExpensesPage() {
         active: e.active,
         note: e.note,
         accountId: e.accountId,
+        inCushion: e.inCushion,
       }))}
       accounts={accounts.map((a) => ({ id: a.id, name: a.name }))}
       cushion={

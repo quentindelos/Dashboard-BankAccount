@@ -310,7 +310,7 @@ export default function AccountDetail({
           <p className="secondary" style={{ margin: 0 }}>
             Ce compte Trade Republic se remplit uniquement avec l'export des transactions : dans Trade Republic,{" "}
             <strong>Relevés &gt; Exportation des transactions</strong>, puis envoie le fichier dans{" "}
-            <Link href="/settings">Réglages &gt; Historique Trade Republic</Link>.
+            <Link href="/settings">Réglages &gt; Historique Trade Republic</Link>, ou glisse-le n&apos;importe où dans l&apos;app.
           </p>
         </div>
       ) : (

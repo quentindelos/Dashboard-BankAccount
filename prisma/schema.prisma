@@ -112,6 +112,9 @@ model RecurringExpense {
   // Destination account of a savings transfer (e.g. 170 €/month to the Livret Bleu).
   accountId  String?
   account    Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  // A savings line that still counts in the safety cushion, because it keeps
+  // being paid even in a hard month (e.g. a fixed assurance vie contribution).
+  inCushion  Boolean  @default(false)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

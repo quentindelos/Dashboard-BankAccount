@@ -13,6 +13,7 @@ import {
   occursInMonth,
   totalMonthly,
   totalSavings,
+  cushionSavings,
   isSavings,
   isIncome,
   totalIncome,
@@ -34,6 +35,7 @@ interface Draft {
   startMonth: number;
   note: string;
   accountId: string; // "" = none
+  inCushion: boolean;
 }
 
 const emptyDraft = (day?: number, category = "LOGEMENT"): Draft => ({
@@ -46,6 +48,7 @@ const emptyDraft = (day?: number, category = "LOGEMENT"): Draft => ({
   startMonth: new Date().getMonth() + 1,
   note: "",
   accountId: "",
+  inCushion: false,
 });
 
 export default function ExpensesView({
@@ -68,6 +71,7 @@ export default function ExpensesView({
   const [saving, setSaving] = useState(false);
 
   const monthly = totalMonthly(expenses);
+  const keptInCushion = cushionSavings(expenses);
   const savings = totalSavings(expenses);
   const outflow = monthly + savings;
   const income = totalIncome(expenses);
@@ -106,6 +110,7 @@ export default function ExpensesView({
       startMonth: e.startMonth,
       note: e.note ?? "",
       accountId: e.accountId ?? "",
+      inCushion: e.inCushion ?? false,
     });
   }
 
@@ -127,6 +132,7 @@ export default function ExpensesView({
       startMonth: draft.startMonth,
       note: draft.note || null,
       accountId: isSavings(draft) && draft.accountId ? draft.accountId : null,
+      inCushion: isSavings(draft) && draft.inCushion,
     };
     setSaving(true);
     try {
@@ -202,7 +208,11 @@ export default function ExpensesView({
           <span className="kpi-icon" aria-hidden="true">💸</span>
           <span className="label">Charges par mois</span>
           <span className="value"><AnimatedNumber value={monthly} /></span>
-          <span className="hint">Hors épargne · base du matelas de sécurité</span>
+          <span className="hint">
+            {keptInCushion > 0
+              ? `Hors épargne · matelas : ${eur0.format(monthly + keptInCushion)} avec l'épargne gardée`
+              : "Hors épargne · base du matelas de sécurité"}
+          </span>
         </div>
         <div className="card stat-tile">
           <span className="kpi-icon" aria-hidden="true">🐷</span>
@@ -376,6 +386,15 @@ export default function ExpensesView({
                 </div>
               )}
             </div>
+            {isSavings(draft) && (
+              <label className="checkbox-field">
+                <input type="checkbox" checked={draft.inCushion} onChange={(e) => setDraft({ ...draft, inCushion: e.target.checked })} />
+                <span>
+                  Compter dans le matelas de sécurité
+                  <span className="muted">Pour un versement que tu continuerais à payer même en cas de coup dur.</span>
+                </span>
+              </label>
+            )}
             {isSavings(draft) && accounts.length > 0 && (
               <div className="field">
                 <label htmlFor="x-account">Vers le compte</label>

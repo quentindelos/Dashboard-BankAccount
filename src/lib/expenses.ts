@@ -114,6 +114,8 @@ export interface ExpenseRow {
   note: string | null;
   /** Destination account of a savings transfer. */
   accountId: string | null;
+  /** Savings line counted in the safety cushion anyway (fixed contribution). */
+  inCushion?: boolean;
 }
 
 function periodMonths(frequency: string): number {
@@ -149,9 +151,19 @@ export function isOutflow(e: Pick<ExpenseRow, "category">): boolean {
   return !isIncome(e);
 }
 
-/** Monthly cost of living: active charges, savings and income excluded. Base of the safety cushion. */
+/** Monthly cost of living: active charges, savings and income excluded. */
 export function totalMonthly(expenses: ExpenseRow[]): number {
   return expenses.filter((e) => e.active && !isSavings(e) && !isIncome(e)).reduce((s, e) => s + monthlyEquivalent(e), 0);
+}
+
+/** Savings lines counted in the safety cushion anyway (see ExpenseRow.inCushion). */
+export function cushionSavings(expenses: ExpenseRow[]): number {
+  return expenses.filter((e) => e.active && isSavings(e) && e.inCushion).reduce((s, e) => s + monthlyEquivalent(e), 0);
+}
+
+/** One month of the safety cushion: the charges plus the savings it must keep paying. */
+export function cushionMonthly(expenses: ExpenseRow[]): number {
+  return totalMonthly(expenses) + cushionSavings(expenses);
 }
 
 /** Monthly income (salary, bonuses smoothed over the year...). */

@@ -53,6 +53,7 @@ export const expenseSchema = z.object({
   active: z.boolean().optional(),
   note: z.string().trim().max(500).nullable().optional(),
   accountId: z.string().min(1).max(50).nullable().optional(),
+  inCushion: z.boolean().optional(),
 });
 
 export const entrySchema = z.object({

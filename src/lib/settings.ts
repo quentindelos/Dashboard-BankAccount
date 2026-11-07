@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/db";
-import { isSavings, totalMonthly, type ExpenseRow } from "@/lib/expenses";
+import { cushionMonthly, isSavings, type ExpenseRow } from "@/lib/expenses";
 
 export interface AppSettings {
-  /** Monthly total of the recurring expenses (null when none are entered). */
+  /** One month of the safety cushion: charges, plus the savings lines marked
+   * to count in it (null when none are entered). */
   monthlyExpenses: number | null;
   /** Target size of the safety cushion, in months of expenses. */
   cushionMonths: number;
@@ -18,7 +19,7 @@ export async function getSettings(): Promise<AppSettings> {
     prisma.recurringExpense.findMany({ where: { active: true }, include: { account: { select: { emergencyFund: true, archived: true } } } }),
   ]);
   const months = Number(row?.value);
-  const monthly = totalMonthly(expenses);
+  const monthly = cushionMonthly(expenses);
   return {
     monthlyExpenses: monthly > 0 ? monthly : null,
     cushionMonths: Number.isInteger(months) && months > 0 ? months : DEFAULT_CUSHION_MONTHS,
