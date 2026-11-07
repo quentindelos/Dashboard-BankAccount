@@ -63,6 +63,13 @@ export function companyLogo(name: string): LogoKey | null {
 
 // Banks and brokers, matched on a normalised institution name.
 const INSTITUTION_DOMAINS: [RegExp, string][] = [
+  // Employee savings (PEE, PERCOL), before the banks they belong to.
+  [/amundi/, "amundi-ee.com"],
+  [/interepargne|natixis/, "interepargne.natixis.com"],
+  [/bnp.*(epargne|retraite|entreprise)/, "epargne-retraite-entreprises.bnpparibas"],
+  [/esalia/, "esalia.com"],
+  [/epsens/, "epsens.com"],
+  [/^eres/, "eres-group.com"],
   [/traderepublic/, "traderepublic.com"],
   [/creditmutuel/, "creditmutuel.fr"],
   [/banquepostale/, "labanquepostale.fr"],
@@ -91,6 +98,20 @@ const INSTITUTION_DOMAINS: [RegExp, string][] = [
   [/axa/, "axa.fr"],
   [/generali/, "generali.fr"],
   [/spirica/, "spirica.fr"],
+  [/suravenir/, "suravenir.fr"],
+  [/cardif/, "cardif.fr"],
+  [/allianz/, "allianz.fr"],
+  [/macif/, "macif.fr"],
+  [/maif/, "maif.fr"],
+  [/swisslife/, "swisslife.fr"],
+  [/groupama/, "groupama.fr"],
+  [/^mma$|mmaassurance/, "mma.fr"],
+  [/abeille/, "abeille-assurances.fr"],
+  [/apicil/, "apicil.com"],
+  [/^ing$|ingdirect/, "ing.fr"],
+  [/monabanq/, "monabanq.com"],
+  [/bforbank/, "bforbank.com"],
+  [/qonto/, "qonto.com"],
 ];
 
 export function institutionLogo(institution: string | null | undefined): LogoKey | null {
