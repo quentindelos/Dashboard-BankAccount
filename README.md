@@ -134,8 +134,9 @@ des placements (bouton « + Ajouter un bien ») :
   Il faut donc une clé d'IA (voir plus bas). Les photos sont rangées dans
   `data/photos/` et ne font pas partie de l'export JSON.
 
-Les véhicules comptent dans le patrimoine total, mais pas dans l'analyse,
-la plus-value ni la projection.
+Les véhicules ne comptent pas dans le patrimoine : ni le total, ni les
+courbes, ni l'analyse. Leur cote se consulte sur la page Biens. L'or physique,
+lui, compte comme un placement.
 
 ### Rappels « À mettre à jour »
 

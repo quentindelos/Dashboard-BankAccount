@@ -48,10 +48,7 @@ export default function SynthesisView({
   advice,
   riskLevel,
   volatility,
-  vehicles = 0,
 }: {
-  /** Value of the vehicles included in the total. */
-  vehicles?: number;
   rows: TimeRow[];
   accountSeries: { key: string; label: string; color: string }[];
   /** Accounts whose invested amount is known day by day. */
@@ -96,11 +93,6 @@ export default function SynthesisView({
         {/* ---- Net worth hero ---- */}
         <section className="card hero">
           <div className="hero-value"><AnimatedNumber value={total} duration={900} /></div>
-          {vehicles > 0 && (
-            <div className="muted" style={{ fontSize: 13, marginTop: -4 }}>
-              dont {eur0.format(vehicles)} de véhicules
-            </div>
-          )}
           {netChange ? (
             investedGain ? (
               <Delta value={investedGain.change} pct={investedGain.pct} />

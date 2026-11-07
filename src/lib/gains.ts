@@ -25,8 +25,7 @@ export interface GainSummary {
 export function computeGains(data: PortfolioData): GainSummary {
   const latest = data.series.at(-1);
   // Livrets only earn their fixed interest: no plus/moins-value to track.
-  // Vehicles are things owned, not investments: left out too.
-  const accounts: AccountGain[] = data.accounts.filter((a) => a.type !== "LIVRET" && a.type !== "VEHICULE").map((a) => {
+  const accounts: AccountGain[] = data.accounts.filter((a) => a.type !== "LIVRET").map((a) => {
     const value = latest?.byAccount[a.id] ?? 0;
     const holdings = data.holdings.filter((h) => h.accountId === a.id);
     let invested: number | null = null;

@@ -38,7 +38,8 @@ export interface PortfolioData {
 
 export async function loadPortfolio(): Promise<PortfolioData> {
   const accounts = await prisma.account.findMany({
-    where: { archived: false },
+    // Vehicles are only followed on the Biens page: not part of the net worth.
+    where: { archived: false, type: { not: "VEHICULE" } },
     include: { entries: true, positions: true },
     orderBy: { createdAt: "asc" },
   });

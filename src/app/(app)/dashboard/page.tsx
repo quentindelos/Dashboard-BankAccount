@@ -90,7 +90,6 @@ export default async function DashboardPage() {
       advice={analysis.advice}
       riskLevel={analysis.riskLevel}
       volatility={analysis.investedVolatility}
-      vehicles={accounts.filter((a) => a.type === "VEHICULE").reduce((s, a) => s + a.value, 0)}
       />
     </>
   );

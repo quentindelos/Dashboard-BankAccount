@@ -7,7 +7,7 @@ export async function GET() {
   await requireAuth();
 
   const accounts = await prisma.account.findMany({
-    where: { archived: false },
+    where: { archived: false, type: { not: "VEHICULE" } },
     include: { entries: true },
     orderBy: { createdAt: "asc" },
   });
