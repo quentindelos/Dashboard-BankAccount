@@ -63,6 +63,7 @@ export async function POST(request: NextRequest) {
   const session = await getSession();
   session.pendingUserId = user.id;
   session.pendingUsername = user.username;
+  session.pendingAt = Date.now();
   session.userId = undefined;
   session.username = undefined;
   await session.save();

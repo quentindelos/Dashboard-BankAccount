@@ -68,7 +68,6 @@ model Entry {
   createdAt DateTime @default(now())
 
   @@unique([accountId, date])
-  @@index([accountId, date])
 }
 
 // One instrument holding within an account at a given snapshot date, e.g.
@@ -90,7 +89,6 @@ model Position {
   createdAt DateTime @default(now())
 
   @@unique([accountId, date, name])
-  @@index([accountId, date])
 }
 
 // App-wide preferences as simple key/value pairs (e.g. monthly expenses

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { accountTypeLabel, ACCOUNT_TYPE_ORDER, PHYSICAL_TYPES } from "@/lib/accountTypes";
 import Logo from "@/components/Logo";
 import type { LogoKey } from "@/lib/logos";
+import { confirmDialog } from "@/components/ConfirmDialog";
 
 interface AccountRow {
   id: string;
@@ -58,7 +59,13 @@ export default function AccountsManager({ initialAccounts }: { initialAccounts: 
   }
 
   async function handleArchive(id: string) {
-    if (!confirm("Archiver ce compte ? Son historique sera conservé mais il n'apparaîtra plus dans le tableau de bord.")) return;
+    const ok = await confirmDialog({
+      title: "Archiver ce compte ?",
+      message: "Son historique est conservé, mais il n'apparaîtra plus dans le tableau de bord.",
+      confirmLabel: "Archiver",
+      danger: true,
+    });
+    if (!ok) return;
     const res = await fetch(`/api/accounts/${id}`, { method: "DELETE" });
     if (res.ok) {
       setAccounts((prev) => prev.filter((a) => a.id !== id));

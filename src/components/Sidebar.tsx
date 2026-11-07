@@ -4,6 +4,13 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { parseTheme } from "@/lib/themes";
+import { PROFILE_UPDATED_EVENT } from "@/components/ProfileForm";
+
+interface Me {
+  username: string;
+  firstName: string | null;
+  photoUrl: string | null;
+}
 
 const icons = {
   synthese: (
@@ -84,7 +91,7 @@ const settingsLink = { href: "/settings", label: "Réglages", icon: icons.reglag
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [username, setUsername] = useState("");
+  const [me, setMe] = useState<Me | null>(null);
   const [due, setDue] = useState(0);
 
   // Number of things to update (see the reminder card on the Synthèse page),
@@ -97,9 +104,14 @@ export default function Sidebar() {
   }, [pathname]);
 
   useEffect(() => {
-    fetch("/api/me")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => d && setUsername(d.username));
+    // Name and photo at the bottom, reloaded when they change on Mon compte.
+    const loadMe = () =>
+      fetch("/api/me", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d: Me | null) => d && setMe(d))
+        .catch(() => undefined);
+    loadMe();
+    window.addEventListener(PROFILE_UPDATED_EVENT, loadMe);
     // One-time migration: the theme used to be kept in localStorage only.
     if (!document.cookie.split("; ").some((c) => c.startsWith("theme="))) {
       try {
@@ -112,6 +124,7 @@ export default function Sidebar() {
         }
       } catch {}
     }
+    return () => window.removeEventListener(PROFILE_UPDATED_EVENT, loadMe);
   }, []);
 
   async function handleLogout() {
@@ -153,11 +166,17 @@ export default function Sidebar() {
           {settingsLink.icon}
           <span className="nav-label">{settingsLink.label}</span>
         </Link>
-        {username && (
-          <div className="user-chip">
-            <span className="avatar">{username.slice(0, 2).toUpperCase()}</span>
-            {username}
-          </div>
+        {me && (
+          <Link
+            href="/profile"
+            className={`user-chip${pathname.startsWith("/profile") ? " active" : ""}`}
+            title="Mon compte : profil et mot de passe"
+          >
+            <span className="avatar">
+              {me.photoUrl ? <img src={me.photoUrl} alt="" /> : (me.firstName || me.username).slice(0, 2).toUpperCase()}
+            </span>
+            <span className="user-name">{me.firstName || me.username}</span>
+          </Link>
         )}
         <div className="sidebar-actions">
           <button className="btn" onClick={handleLogout} type="button" title="Déconnexion" aria-label="Déconnexion">

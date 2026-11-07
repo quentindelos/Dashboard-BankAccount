@@ -3,14 +3,15 @@
 // lines, assumptions never checked. Recomputed on each visit, so an item goes
 // away as soon as the data is there: it works as a standing reminder.
 import { prisma } from "@/lib/db";
-import { loadPortfolio } from "@/lib/portfolio";
+import { loadPortfolio, type PortfolioData } from "@/lib/portfolio";
 import { computeGains } from "@/lib/gains";
 import { analyzePortfolio } from "@/lib/analysis";
-import { getSettings } from "@/lib/settings";
+import { getSettings, type AppSettings } from "@/lib/settings";
 import { PHYSICAL_TYPES, isTradeRepublic } from "@/lib/accountTypes";
 import { isIncome, isSavings } from "@/lib/expenses";
 import { loadProjectionSettings } from "@/lib/projectionSettings";
 import { loadAssistantSettings } from "@/lib/assistantSettings";
+import { loadProfile } from "@/lib/profile";
 
 /** late: data out of date · missing: never filled in · tip: would improve the advice. */
 export type ChecklistLevel = "late" | "missing" | "tip";
@@ -42,20 +43,28 @@ function age(date: Date, now: Date): string {
 
 const LEVEL_ORDER: Record<ChecklistLevel, number> = { late: 0, missing: 1, tip: 2 };
 
-export async function buildChecklist(now = new Date()): Promise<ChecklistItem[]> {
-  const [accounts, data, settings, expenses, projection, assistant, memories, cushionAccounts] = await Promise.all([
+/** Pages that already load the portfolio or settings pass them here, so they
+ * aren't read and computed a second time for the same request. */
+export interface ChecklistPreload {
+  data?: Promise<PortfolioData>;
+  settings?: Promise<AppSettings>;
+}
+
+export async function buildChecklist(now = new Date(), preload: ChecklistPreload = {}): Promise<ChecklistItem[]> {
+  const [accounts, data, settings, expenses, projection, assistant, memories, cushionAccounts, identity] = await Promise.all([
     prisma.account.findMany({
       where: { archived: false },
       select: { id: true, name: true, type: true, details: true, institution: true, entries: { select: { date: true }, orderBy: { date: "desc" }, take: 1 } },
       orderBy: { createdAt: "asc" },
     }),
-    loadPortfolio(),
-    getSettings(),
+    preload.data ?? loadPortfolio(),
+    preload.settings ?? getSettings(),
     prisma.recurringExpense.findMany({ where: { active: true } }),
     prisma.setting.findUnique({ where: { key: "projection" } }).then((row) => (row ? loadProjectionSettings() : null)),
     loadAssistantSettings(),
     prisma.assistantMemory.count(),
     prisma.account.count({ where: { archived: false, emergencyFund: true } }),
+    loadProfile(),
   ]);
   const items: ChecklistItem[] = [];
   if (accounts.length === 0) return items;
@@ -182,6 +191,16 @@ export async function buildChecklist(now = new Date()): Promise<ChecklistItem[]>
       detail: "Versements, rendements et salaire après ton diplôme : enregistre-les pour une projection fidèle.",
       href: "/projection",
       action: "Vérifier",
+    });
+  }
+  if (!identity.birthDate || !identity.family || !identity.job) {
+    items.push({
+      id: "profile",
+      level: "tip",
+      title: "Complète ton profil",
+      detail: "Âge, situation familiale et professionnelle : le conseiller adapte ses conseils (Livret Jeune, PER, foyer fiscal...).",
+      href: "/profile",
+      action: "Compléter",
     });
   }
   if (assistant.tmi === null) {

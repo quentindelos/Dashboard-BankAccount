@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { eur0 } from "@/components/ui";
+import { confirmDialog } from "@/components/ConfirmDialog";
 import {
   GOLD_ITEMS,
   VEHICLE_CONDITIONS,
@@ -47,7 +48,7 @@ function VehiclePhoto({ accountId, photo: initial, name }: { accountId: string; 
   }
 
   async function remove() {
-    if (!confirm("Retirer la photo ?")) return;
+    if (!(await confirmDialog({ title: "Retirer la photo ?", confirmLabel: "Retirer", danger: true }))) return;
     const res = await fetch(`/api/accounts/${accountId}/photo`, { method: "DELETE" }).catch(() => null);
     if (res?.ok) {
       setPhoto(null);

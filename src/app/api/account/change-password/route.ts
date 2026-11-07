@@ -3,10 +3,11 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireAuth, hashPassword, verifyPassword } from "@/lib/auth";
 import { verifyTotpToken } from "@/lib/totp";
+import { checkRateLimit } from "@/lib/rateLimit";
 import { passwordSchema, totpTokenSchema } from "@/lib/validation";
 
 const schema = z.object({
-  currentPassword: z.string().min(1),
+  currentPassword: z.string().min(1).max(200),
   newPassword: passwordSchema,
   token: totpTokenSchema,
 });
@@ -16,6 +17,12 @@ const schema = z.object({
 // enough to take over long-term access to the account.
 export async function POST(request: NextRequest) {
   const { userId } = await requireAuth();
+  // Keyed on the account: whoever holds the session cookie must not be able to
+  // try current passwords endlessly.
+  const rl = checkRateLimit(`change-password:${userId}`, { max: 5, windowMs: 15 * 60 * 1000 });
+  if (!rl.allowed) {
+    return NextResponse.json({ error: `Trop de tentatives. Réessayez dans ${Math.ceil(rl.retryAfterSeconds / 60)} min.` }, { status: 429 });
+  }
   const body = await request.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {

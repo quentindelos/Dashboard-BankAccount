@@ -2,14 +2,16 @@ import { cookies } from "next/headers";
 import { getIronSession, type IronSession, type SessionOptions } from "iron-session";
 
 // Deliberately kept free of any Node-only dependency (bcrypt, etc.): this
-// module is imported by middleware.ts, which runs in the Edge runtime.
-// Password hashing lives in auth.ts instead.
+// module is imported by proxy.ts. Password hashing lives in auth.ts instead.
 
 export interface SessionData {
   // Set once username+password are correct, before 2FA is confirmed.
   // A session is NOT considered authenticated until `userId` is also set.
   pendingUserId?: string;
   pendingUsername?: string;
+  // When the password step succeeded (ms since epoch): the 2FA step must
+  // follow shortly, see pendingExpired().
+  pendingAt?: number;
   // Set only after the TOTP code has been verified. This is the
   // "fully logged in" flag every protected route checks for.
   userId?: string;
@@ -37,4 +39,12 @@ export const sessionOptions: SessionOptions = {
 
 export async function getSession(): Promise<IronSession<SessionData>> {
   return getIronSession<SessionData>(await cookies(), sessionOptions);
+}
+
+/** Time allowed between the password step and the 2FA code at login. */
+export const LOGIN_PENDING_MAX_MS = 10 * 60 * 1000;
+
+/** True when the password step is missing or too old to finish with a 2FA code. */
+export function pendingExpired(session: SessionData, maxAgeMs: number): boolean {
+  return !session.pendingUserId || !session.pendingAt || Date.now() - session.pendingAt > maxAgeMs;
 }

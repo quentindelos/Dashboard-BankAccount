@@ -11,6 +11,7 @@ import {
   type StreamEvent,
 } from "@/lib/assistantShared";
 import AssistantSettingsPanel, { type AssistantInfo } from "@/components/AssistantSettingsPanel";
+import { confirmDialog } from "@/components/ConfirmDialog";
 
 /** Where the previous version of the page kept its single conversation. */
 const LEGACY_STORAGE_KEY = "assistant-conversation";
@@ -112,7 +113,7 @@ export default function AssistantChat({ initial }: { initial: AssistantInfo }) {
   }
 
   async function remove(id: string) {
-    if (!window.confirm("Supprimer cette conversation ? Ce que le conseiller a mémorisé est conservé.")) return;
+    if (!(await confirmDialog({ title: "Supprimer cette conversation ?", message: "Ce que le conseiller a mémorisé est conservé.", confirmLabel: "Supprimer", danger: true }))) return;
     await fetch(`/api/assistant/conversations/${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => undefined);
     if (id === activeId) startNew();
     refreshList();

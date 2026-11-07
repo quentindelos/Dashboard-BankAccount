@@ -67,7 +67,11 @@ export const SEARCH_TOOL: ToolDefinition = {
 };
 
 const text = (v: unknown) => (typeof v === "string" ? v.trim() : "");
-const int = (v: unknown) => (typeof v === "number" && Number.isInteger(v) ? v : Number.parseInt(String(v), 10));
+/** A memory id from the model; -1 (no such row) when it isn't a valid integer. */
+const int = (v: unknown) => {
+  const n = typeof v === "number" ? v : Number.parseInt(String(v), 10);
+  return Number.isSafeInteger(n) && n > 0 && n <= 2 ** 31 - 1 ? n : -1;
+};
 
 export async function runTool(name: string, args: Record<string, unknown>, search?: WebSearch): Promise<ToolOutcome> {
   try {

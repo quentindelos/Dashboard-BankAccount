@@ -56,6 +56,8 @@ function applySecurityHeaders(res: NextResponse, isHttps: boolean, csp: string):
   res.headers.set("X-Content-Type-Options", "nosniff");
   res.headers.set("Referrer-Policy", "no-referrer");
   res.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  // Pages opened from the app (e.g. a source link) can't reach back into it.
+  res.headers.set("Cross-Origin-Opener-Policy", "same-origin");
   if (isHttps) {
     res.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains");
   }
@@ -70,8 +72,8 @@ export async function proxy(request: NextRequest) {
   const nonce = generateNonce();
   const csp = buildCsp(nonce);
 
-  // Forward the nonce to Server Components (via `headers()`) so our own
-  // inline <script> (the theme-init snippet in layout.tsx) can carry it too.
+  // Forward the nonce to Server Components (via `headers()`), for any inline
+  // <script> of our own (Next.js tags its scripts with it already).
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
 

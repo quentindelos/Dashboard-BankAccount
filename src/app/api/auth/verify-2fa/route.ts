@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { LOGIN_PENDING_MAX_MS, pendingExpired } from "@/lib/session";
 import { verifyTotpToken } from "@/lib/totp";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { totpTokenSchema } from "@/lib/validation";
@@ -19,8 +20,8 @@ export async function POST(request: NextRequest) {
   }
 
   const session = await getSession();
-  if (!session.pendingUserId) {
-    return NextResponse.json({ error: "Connectez-vous d'abord avec votre mot de passe." }, { status: 400 });
+  if (pendingExpired(session, LOGIN_PENDING_MAX_MS)) {
+    return NextResponse.json({ error: "Connectez-vous d'abord avec votre mot de passe.", restart: true }, { status: 400 });
   }
 
   const body = await request.json().catch(() => null);
@@ -56,6 +57,7 @@ export async function POST(request: NextRequest) {
   session.username = user.username;
   session.pendingUserId = undefined;
   session.pendingUsername = undefined;
+  session.pendingAt = undefined;
   await session.save();
 
   return NextResponse.json({ success: true });

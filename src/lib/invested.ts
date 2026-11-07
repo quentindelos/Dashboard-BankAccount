@@ -30,11 +30,15 @@ export function investedSeries(entries: EntryIn[], positions: PositionIn[]): (nu
   }
   const snaps = Array.from(byDate, ([t, cost]) => ({ t, cost })).sort((a, b) => a.t - b.t);
 
+  // Entries usually come sorted by date: the cursor then only moves forward.
+  let i = 0;
+  let lastT = -Infinity;
   return entries.map((e) => {
     if (e.invested !== null) return e.invested;
     const t = day(e.date);
     if (t < snaps[0].t) return e.value;
-    let i = 0;
+    if (t < lastT) i = 0;
+    lastT = t;
     while (i + 1 < snaps.length && snaps[i + 1].t <= t) i += 1;
     const prev = snaps[i];
     const next = snaps[i + 1];

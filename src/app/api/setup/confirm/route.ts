@@ -1,14 +1,22 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { pendingExpired } from "@/lib/session";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { verifyTotpToken } from "@/lib/totp";
 import { totpTokenSchema } from "@/lib/validation";
 
 // Final step of setup: user scanned the QR code and types back the current
 // 6-digit code to prove it was set up correctly before we lock the account in.
 export async function POST(request: NextRequest) {
+  const rl = checkRateLimit(`setup-confirm:${getClientIp(request.headers)}`, { max: 15, windowMs: 5 * 60 * 1000 });
+  if (!rl.allowed) {
+    return NextResponse.json({ error: `Trop de tentatives. Réessayez dans ${rl.retryAfterSeconds}s.` }, { status: 429 });
+  }
+
   const session = await getSession();
-  if (!session.pendingUserId) {
+  // Time to install an authenticator app and scan the QR code.
+  if (pendingExpired(session, 30 * 60 * 1000)) {
     return NextResponse.json({ error: "Aucune configuration en cours. Recommencez." }, { status: 400 });
   }
 
@@ -35,6 +43,7 @@ export async function POST(request: NextRequest) {
   session.username = user.username;
   session.pendingUserId = undefined;
   session.pendingUsername = undefined;
+  session.pendingAt = undefined;
   await session.save();
 
   return NextResponse.json({ success: true });

@@ -40,7 +40,7 @@ export async function loadPortfolio(): Promise<PortfolioData> {
   const accounts = await prisma.account.findMany({
     // Vehicles are only followed on the Biens page: not part of the net worth.
     where: { archived: false, type: { not: "VEHICULE" } },
-    include: { entries: true, positions: true },
+    include: { entries: { orderBy: { date: "asc" } }, positions: true },
     orderBy: { createdAt: "asc" },
   });
 
@@ -52,10 +52,9 @@ export async function loadPortfolio(): Promise<PortfolioData> {
 
   const investedAt: PortfolioData["investedAt"] = {};
   for (const a of accounts) {
-    const sorted = [...a.entries].sort((x, y) => x.date.getTime() - y.date.getTime());
-    const invested = investedSeries(sorted, a.positions);
+    const invested = investedSeries(a.entries, a.positions);
     if (!invested || invested.some((v) => v === null)) continue;
-    const list = sorted.map((e, i) => ({ day: e.date.toISOString().slice(0, 10), invested: invested[i] ?? 0 }));
+    const list = a.entries.map((e, i) => ({ day: e.date.toISOString().slice(0, 10), invested: invested[i] ?? 0 }));
     const byDate: Record<string, number> = {};
     let i = -1;
     for (const p of series) {

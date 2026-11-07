@@ -14,6 +14,8 @@ import { netMonthlyFromGross } from "@/lib/career";
 import { RISK_LABEL, type AssistantSettings } from "@/lib/assistantShared";
 import { listMemories } from "@/lib/assistantStore";
 import { buildChecklist } from "@/lib/checklist";
+import { loadProfile } from "@/lib/profile";
+import { profileLines } from "@/lib/profileShared";
 
 const eur = (n: number) => `${Math.round(n).toLocaleString("fr-FR")} €`;
 const eur2 = (n: number) => `${n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
@@ -21,13 +23,16 @@ const pct = (n: number, digits = 1) => `${(n * 100).toLocaleString("fr-FR", { ma
 const signed = (n: number) => (n >= 0 ? "+" : "−") + eur(Math.abs(n));
 
 export async function buildAssistantContext(profile: AssistantSettings, now = new Date()): Promise<string> {
-  const [data, settings, expenses, projection, memories, checklist] = await Promise.all([
-    loadPortfolio(),
-    getSettings(),
+  const dataP = loadPortfolio();
+  const settingsP = getSettings();
+  const [data, settings, expenses, projection, memories, checklist, identity] = await Promise.all([
+    dataP,
+    settingsP,
     prisma.recurringExpense.findMany({ where: { active: true }, include: { account: { select: { name: true } } } }),
     loadProjectionSettings(),
     listMemories(),
-    buildChecklist(now),
+    buildChecklist(now, { data: dataP, settings: settingsP }),
+    loadProfile(),
   ]);
   const gains = computeGains(data);
   const analysis = analyzePortfolio(data.holdings, data.otherAssets, settings);
@@ -38,6 +43,8 @@ export async function buildAssistantContext(profile: AssistantSettings, now = ne
   line(`# Situation financière au ${now.toLocaleDateString("fr-FR", { dateStyle: "full", timeZone: "Europe/Paris" })}`);
   line();
   line("## Profil et objectifs (renseignés par l'utilisateur)");
+  // Structured situation from the Mon compte page, then the free-form notes.
+  profileLines(identity, now).forEach((l) => line(`- ${l}`));
   profile.profile
     .split("\n")
     .map((p) => p.trim().replace(/^[-•]\s*/, ""))

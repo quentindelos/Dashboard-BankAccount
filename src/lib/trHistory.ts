@@ -118,7 +118,7 @@ export async function yahooChart(symbol: string, from: string): Promise<{ curren
 }
 
 async function yahooSearch(isin: string): Promise<string[]> {
-  const res = await fetch(`https://query2.finance.yahoo.com/v1/finance/search?q=${isin}&quotesCount=10&newsCount=0`, {
+  const res = await fetch(`https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(isin)}&quotesCount=10&newsCount=0`, {
     ...UA,
     signal: AbortSignal.timeout(15000),
   }).catch(() => null);
@@ -154,17 +154,34 @@ const FX_PAIRS: Record<string, { pair: string; divisor: number }> = {
 
 type PriceFn = (day: string) => number | null;
 
+/** Runs `fn` on every item, at most `limit` at a time, keeping the order of results. */
+async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const out = new Array<R>(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const i = next++;
+      out[i] = await fn(items[i]);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return out;
+}
+
+/** Instruments looked up on Yahoo Finance at the same time. */
+const PRICE_CONCURRENCY = 4;
+
 async function priceFunctions(trades: Trade[], from: string): Promise<{ prices: Map<string, PriceFn>; unpriced: string[] }> {
-  const fxCache = new Map<string, PriceFn | null>();
+  // Promises are cached, so instruments looked up in parallel share one download per currency.
+  const fxCache = new Map<string, Promise<PriceFn | null>>();
   const fx = async (currency: string): Promise<PriceFn | null> => {
     if (currency === "EUR") return () => 1;
     const conf = FX_PAIRS[currency];
     if (!conf) return null;
     if (!fxCache.has(conf.pair)) {
-      const c = await yahooChart(conf.pair, from);
-      fxCache.set(conf.pair, c ? makeLookup(c.closes) : null);
+      fxCache.set(conf.pair, yahooChart(conf.pair, from).then((c) => (c ? makeLookup(c.closes) : null)));
     }
-    const lookup = fxCache.get(conf.pair);
+    const lookup = await fxCache.get(conf.pair)!;
     if (!lookup) return null;
     return (day) => {
       const rate = lookup(day);
@@ -173,60 +190,71 @@ async function priceFunctions(trades: Trade[], from: string): Promise<{ prices: 
   };
 
   const symbols = [...new Set(trades.map((t) => t.symbol))];
+  const resolved = await mapLimit(symbols, PRICE_CONCURRENCY, (symbol) => priceFunction(trades, symbol, from, fx));
   const prices = new Map<string, PriceFn>();
   const unpriced: string[] = [];
+  symbols.forEach((symbol, i) => {
+    prices.set(symbol, resolved[i].price);
+    if (resolved[i].unpriced) unpriced.push(resolved[i].unpriced!);
+  });
+  return { prices, unpriced };
+}
 
-  for (const symbol of symbols) {
-    const own = trades.filter((t) => t.symbol === symbol && t.price);
-    const lastTrade = makeLookup(new Map(own.map((t) => [t.day, t.price!])));
-    const firstPrice = own[0]?.price ?? 0;
-    const isCrypto = own[0]?.assetClass === "CRYPTO" || /^[A-Z]{2,6}$/.test(symbol);
-    const candidates = isCrypto ? [`${symbol}-EUR`] : await yahooSearch(symbol);
+/** Daily EUR price of one instrument, or its trade prices when no market quote is found. */
+async function priceFunction(
+  trades: Trade[],
+  symbol: string,
+  from: string,
+  fx: (currency: string) => Promise<PriceFn | null>,
+): Promise<{ price: PriceFn; unpriced?: string }> {
+  const own = trades.filter((t) => t.symbol === symbol && t.price);
+  const lastTrade = makeLookup(new Map(own.map((t) => [t.day, t.price!])));
+  const firstPrice = own[0]?.price ?? 0;
+  const isCrypto = own[0]?.assetClass === "CRYPTO" || /^[A-Z]{2,6}$/.test(symbol);
+  const candidates = isCrypto ? [`${symbol}-EUR`] : await yahooSearch(symbol);
 
-    let chosen: { lookup: PriceFn; currency: string } | null = null;
-    let fallback: { lookup: PriceFn; currency: string } | null = null;
-    for (const cand of candidates.slice(0, 6)) {
-      const chart = await yahooChart(cand, from);
-      if (!chart) continue;
-      const toEur = await fx(chart.currency);
-      if (!toEur) continue;
-      const raw = makeLookup(chart.closes);
-      const lookup: PriceFn = (day) => {
-        const c = raw(day);
-        const f = toEur(day);
-        return c !== null && f !== null ? c * f : null;
-      };
-      if (chart.currency === "EUR") {
-        chosen = { lookup, currency: "EUR" };
-        break;
-      }
-      fallback ??= { lookup, currency: chart.currency };
+  let chosen: { lookup: PriceFn; currency: string } | null = null;
+  let fallback: { lookup: PriceFn; currency: string } | null = null;
+  for (const cand of candidates.slice(0, 6)) {
+    const chart = await yahooChart(cand, from);
+    if (!chart) continue;
+    const toEur = await fx(chart.currency);
+    if (!toEur) continue;
+    const raw = makeLookup(chart.closes);
+    const lookup: PriceFn = (day) => {
+      const c = raw(day);
+      const f = toEur(day);
+      return c !== null && f !== null ? c * f : null;
+    };
+    if (chart.currency === "EUR") {
+      chosen = { lookup, currency: "EUR" };
+      break;
     }
-    chosen ??= fallback;
+    fallback ??= { lookup, currency: chart.currency };
+  }
+  chosen ??= fallback;
 
-    if (!chosen) {
-      unpriced.push(own[0]?.name ?? symbol);
-      prices.set(symbol, (day) => lastTrade(day) ?? firstPrice);
-      continue;
-    }
-    // Calibrate on the actual trade prices: catches a different share class /
-    // ADR ratio. Small gaps (spread) are left alone.
-    const ratios = own
-      .map((t) => {
-        const p = chosen!.lookup(t.day);
-        return p ? t.price! / p : null;
-      })
-      .filter((x): x is number => x !== null)
-      .sort((a, b) => a - b);
-    const k = ratios.length >= 3 ? ratios[Math.floor(ratios.length / 2)] : 1;
-    const factor = Math.abs(k - 1) > 0.05 ? k : 1;
-    const lookup = chosen.lookup;
-    prices.set(symbol, (day) => {
+  if (!chosen) {
+    return { price: (day) => lastTrade(day) ?? firstPrice, unpriced: own[0]?.name ?? symbol };
+  }
+  // Calibrate on the actual trade prices: catches a different share class /
+  // ADR ratio. Small gaps (spread) are left alone.
+  const ratios = own
+    .map((t) => {
+      const p = chosen!.lookup(t.day);
+      return p ? t.price! / p : null;
+    })
+    .filter((x): x is number => x !== null)
+    .sort((a, b) => a - b);
+  const k = ratios.length >= 3 ? ratios[Math.floor(ratios.length / 2)] : 1;
+  const factor = Math.abs(k - 1) > 0.05 ? k : 1;
+  const lookup = chosen.lookup;
+  return {
+    price: (day) => {
       const p = lookup(day);
       return p !== null ? p * factor : (lastTrade(day) ?? firstPrice);
-    });
-  }
-  return { prices, unpriced };
+    },
+  };
 }
 
 // ---------------------------------------------------------------- replay

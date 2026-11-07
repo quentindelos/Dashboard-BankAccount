@@ -46,6 +46,11 @@ export default function LoginForm({ initialStep }: { initialStep: "password" | "
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "Code invalide.");
+        // The password step expired: ask for the password again.
+        if (data.restart) {
+          setToken("");
+          setStep("password");
+        }
         return;
       }
       router.push("/dashboard");

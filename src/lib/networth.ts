@@ -43,11 +43,19 @@ export function buildNetWorthSeries(accounts: AccountLike[], entries: EntryLike[
 
   const allDays = Array.from(new Set(entries.map((e) => dayStart(e.date)))).sort((a, b) => a - b);
 
+  // Days are walked in order, so each account keeps a cursor on its last
+  // reading instead of searching its list again for every day.
+  const cursors = new Map<string, number>(accounts.map((a) => [a.id, 0]));
+
   return allDays.map((t) => {
     const byAccount: Record<string, number> = {};
     let total = 0;
     for (const account of accounts) {
-      const value = valueAt(readings.get(account.id) ?? [], t, STEP_TYPES.has(account.type));
+      const list = readings.get(account.id) ?? [];
+      let i = cursors.get(account.id) ?? 0;
+      while (i + 1 < list.length && list[i + 1].t <= t) i += 1;
+      cursors.set(account.id, i);
+      const value = valueAt(list, i, t, STEP_TYPES.has(account.type));
       byAccount[account.id] = value;
       total += value;
     }
@@ -55,11 +63,9 @@ export function buildNetWorthSeries(accounts: AccountLike[], entries: EntryLike[
   });
 }
 
-function valueAt(list: { t: number; value: number }[], t: number, step: boolean): number {
+/** `i` is the index of the last reading at or before t (when there is one). */
+function valueAt(list: { t: number; value: number }[], i: number, t: number, step: boolean): number {
   if (list.length === 0 || t < list[0].t) return 0;
-  // index of the last reading at or before t
-  let i = 0;
-  while (i + 1 < list.length && list[i + 1].t <= t) i += 1;
   const prev = list[i];
   const next = list[i + 1];
   if (step || !next || prev.t === t) return prev.value;

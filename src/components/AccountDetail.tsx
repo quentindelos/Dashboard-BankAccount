@@ -20,6 +20,7 @@ import Logo from "@/components/Logo";
 import PhysicalAssetCard from "@/components/PhysicalAssetCard";
 import type { LogoKey } from "@/lib/logos";
 import { photoUrl, type GoldDetails, type VehicleDetails } from "@/lib/physicalAssets";
+import { confirmDialog } from "@/components/ConfirmDialog";
 
 interface EntryRow {
   id: string;
@@ -147,7 +148,7 @@ export default function AccountDetail({
   }
 
   async function handleDeleteEntry(id: string) {
-    if (!confirm("Supprimer ce relevé ?")) return;
+    if (!(await confirmDialog({ title: "Supprimer ce relevé ?", message: "Cette valeur sera retirée de l'historique du compte.", confirmLabel: "Supprimer", danger: true }))) return;
     const res = await fetch(`/api/entries/${id}`, { method: "DELETE" });
     if (res.ok) {
       setEntries((prev) => prev.filter((en) => en.id !== id));

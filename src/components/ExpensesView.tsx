@@ -22,6 +22,7 @@ import {
 import { Allocation, eur0, eur2, formatPct } from "@/components/ui";
 import AnimatedNumber from "@/components/AnimatedNumber";
 import CashflowSankey from "@/components/CashflowSankey";
+import { confirmDialog } from "@/components/ConfirmDialog";
 
 const MONTHS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
 
@@ -168,7 +169,7 @@ export default function ExpensesView({
   }
 
   async function remove(id: string) {
-    if (!confirm("Supprimer cette charge ?")) return;
+    if (!(await confirmDialog({ title: "Supprimer cette charge ?", confirmLabel: "Supprimer", danger: true }))) return;
     const res = await fetch(`/api/expenses/${id}`, { method: "DELETE" });
     if (res.ok) {
       setExpenses((prev) => prev.filter((e) => e.id !== id));

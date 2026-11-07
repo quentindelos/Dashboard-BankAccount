@@ -8,11 +8,11 @@ const importSchema = z.object({
   // v1 exports have no `positions` field; they are accepted for backward compatibility.
   exportFormatVersion: z.union([z.literal(1), z.literal(2)]),
   // Optional: older exports have no expenses/settings.
-  expenses: z.array(expenseSchema.extend({ id: z.string().min(1) })).default([]),
+  expenses: z.array(expenseSchema.extend({ id: z.string().min(1).max(50) })).default([]),
   settings: z.record(z.string(), z.string()).default({}),
   accounts: z.array(
     z.object({
-      id: z.string().min(1),
+      id: z.string().min(1).max(50),
       name: z.string().min(1).max(100),
       type: z.enum(accountTypeValues),
       institution: z.string().max(100).nullable().optional(),
@@ -118,7 +118,8 @@ export async function POST(request: NextRequest) {
         }));
         for (const part of chunks(entryRows)) await tx.entry.createMany({ data: part });
         entriesImported += entryRows.length;
-        if (days.length > 0) latest = Math.max(latest, ...days);
+        // A loop, not Math.max(...days): spreading a very long history overflows the stack.
+        for (const t of days) if (t > latest) latest = t;
 
         // Positions: one per (account, day, name).
         const byKey = new Map<string, { t: number; p: (typeof acc.positions)[number] }>();

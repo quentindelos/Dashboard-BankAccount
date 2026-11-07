@@ -7,45 +7,9 @@ export default function SettingsPanel() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [pwCurrent, setPwCurrent] = useState("");
-  const [pwNew, setPwNew] = useState("");
-  const [pwToken, setPwToken] = useState("");
-  const [pwError, setPwError] = useState("");
-  const [pwSuccess, setPwSuccess] = useState("");
-  const [pwLoading, setPwLoading] = useState(false);
-
   const [importMessage, setImportMessage] = useState("");
   const [importError, setImportError] = useState("");
   const [importLoading, setImportLoading] = useState(false);
-
-  async function handleChangePassword(e: React.FormEvent) {
-    e.preventDefault();
-    setPwError("");
-    setPwSuccess("");
-    if (pwNew.length < 12) {
-      setPwError("Le nouveau mot de passe doit contenir au moins 12 caractères.");
-      return;
-    }
-    setPwLoading(true);
-    try {
-      const res = await fetch("/api/account/change-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentPassword: pwCurrent, newPassword: pwNew, token: pwToken }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setPwError(data.error ?? "Erreur.");
-        return;
-      }
-      setPwSuccess("Mot de passe mis à jour.");
-      setPwCurrent("");
-      setPwNew("");
-      setPwToken("");
-    } finally {
-      setPwLoading(false);
-    }
-  }
 
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -108,37 +72,6 @@ export default function SettingsPanel() {
         <button className="btn btn-primary" type="button" disabled={importLoading} onClick={() => fileInputRef.current?.click()}>
           {importLoading ? "Import en cours..." : "Choisir un fichier JSON"}
         </button>
-      </div>
-
-      <div className="card">
-        <h2>Changer le mot de passe</h2>
-        <p className="secondary">Nécessite le mot de passe actuel et un code 2FA valide.</p>
-        <form onSubmit={handleChangePassword}>
-          {pwError && <p className="error-text">{pwError}</p>}
-          {pwSuccess && <p className="success-text">{pwSuccess}</p>}
-          <div className="field">
-            <label htmlFor="pwCurrent">Mot de passe actuel</label>
-            <input id="pwCurrent" type="password" value={pwCurrent} onChange={(e) => setPwCurrent(e.target.value)} autoComplete="current-password" required />
-          </div>
-          <div className="field">
-            <label htmlFor="pwNew">Nouveau mot de passe (12 caractères min.)</label>
-            <input id="pwNew" type="password" value={pwNew} onChange={(e) => setPwNew(e.target.value)} autoComplete="new-password" required minLength={12} />
-          </div>
-          <div className="field">
-            <label htmlFor="pwToken">Code 2FA actuel</label>
-            <input
-              id="pwToken"
-              value={pwToken}
-              onChange={(e) => setPwToken(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              inputMode="numeric"
-              maxLength={6}
-              required
-            />
-          </div>
-          <button className="btn btn-primary" disabled={pwLoading} type="submit">
-            {pwLoading ? "..." : "Mettre à jour"}
-          </button>
-        </form>
       </div>
     </>
   );

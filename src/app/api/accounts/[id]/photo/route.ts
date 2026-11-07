@@ -3,25 +3,11 @@ import path from "path";
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
+import { IMAGE_TYPES, imageExt, type ImageExt } from "@/lib/images";
 
 // Photo of an account (a vehicle), stored in data/photos next to the database.
 const DIR = path.join(process.cwd(), "data", "photos");
 const MAX_BYTES = 10 * 1024 * 1024;
-
-const TYPES = {
-  jpg: "image/jpeg",
-  png: "image/png",
-  webp: "image/webp",
-} as const;
-type Ext = keyof typeof TYPES;
-
-/** Recognises the image from its first bytes, whatever the browser claims. */
-function imageExt(buf: Buffer): Ext | null {
-  if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return "jpg";
-  if (buf.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return "png";
-  if (buf.subarray(0, 4).toString("ascii") === "RIFF" && buf.subarray(8, 12).toString("ascii") === "WEBP") return "webp";
-  return null;
-}
 
 // Stored names are generated here: <account id>-<timestamp>.<ext>.
 const safeName = (name: string | null) => (name && /^[a-z0-9]+-\d+\.(jpg|png|webp)$/.test(name) ? name : null);
@@ -38,7 +24,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   if (!buf) return new NextResponse(null, { status: 404 });
   return new NextResponse(new Uint8Array(buf), {
     headers: {
-      "Content-Type": TYPES[name.split(".").pop() as Ext],
+      "Content-Type": IMAGE_TYPES[name.split(".").pop() as ImageExt],
       // The URL carries the file name, so a new photo gets a new URL.
       "Cache-Control": "private, max-age=31536000, immutable",
       "X-Content-Type-Options": "nosniff",

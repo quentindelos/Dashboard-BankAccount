@@ -43,9 +43,12 @@ export function checkRateLimit(
 }
 
 export function getClientIp(headers: Headers): string {
-  // Behind Caddy/a reverse proxy, the real client IP is forwarded here.
+  // Behind Caddy/a reverse proxy, the real client IP is forwarded here. The
+  // proxy appends the address it saw at the END of the list; everything before
+  // it was sent by the client and can be forged to dodge the limit, so only
+  // the last value is trusted.
   // Fall back to a constant key if nothing is present (e.g. direct local access).
   const forwarded = headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0].trim();
-  return "local";
+  const last = forwarded?.split(",").at(-1)?.trim();
+  return last || "local";
 }

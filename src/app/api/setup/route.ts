@@ -39,6 +39,7 @@ export async function POST(request: NextRequest) {
   const session = await getSession();
   session.pendingUserId = user.id;
   session.pendingUsername = user.username;
+  session.pendingAt = Date.now();
   await session.save();
 
   return NextResponse.json({ qrCodeDataUrl, secret: totpSecret });

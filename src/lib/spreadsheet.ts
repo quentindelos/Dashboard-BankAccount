@@ -5,6 +5,10 @@ import { inflateRawSync } from "zlib";
 
 export type SheetRow = Record<string, string>;
 
+/** Largest size an xlsx part may unzip to: guards against zip bombs (a few MB
+ * file that expands to gigabytes and exhausts the server's memory). */
+const MAX_UNZIPPED_BYTES = 100 * 1024 * 1024;
+
 function unzipEntry(buf: Buffer, wanted: string): Buffer | null {
   // End of central directory record: scan back from the end.
   let eocd = -1;
@@ -32,7 +36,13 @@ function unzipEntry(buf: Buffer, wanted: string): Buffer | null {
       const start = localOffset + 30 + lNameLen + lExtraLen;
       const data = buf.subarray(start, start + compSize);
       if (method === 0) return Buffer.from(data);
-      if (method === 8) return inflateRawSync(data);
+      if (method === 8) {
+        try {
+          return inflateRawSync(data, { maxOutputLength: MAX_UNZIPPED_BYTES });
+        } catch {
+          throw new Error("Fichier xlsx illisible ou trop volumineux une fois décompressé");
+        }
+      }
       throw new Error("Compression xlsx non gérée");
     }
     p += 46 + nameLen + extraLen + commentLen;

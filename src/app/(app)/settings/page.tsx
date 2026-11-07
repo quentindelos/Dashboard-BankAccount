@@ -14,7 +14,8 @@ export default async function SettingsPage() {
         <div>
           <h1>Réglages</h1>
           <p className="muted">
-            Le matelas de sécurité se règle maintenant dans <Link href="/expenses">Dépenses</Link>.
+            Le matelas de sécurité se règle dans <Link href="/expenses">Dépenses</Link>. Ton profil et ton mot de passe sont dans{" "}
+            <Link href="/profile">Mon compte</Link>.
           </p>
         </div>
       </div>

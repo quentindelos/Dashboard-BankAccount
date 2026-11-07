@@ -160,8 +160,25 @@ h3 {
   align-items: center;
   gap: 10px;
   padding: 6px 10px;
+  border-radius: 10px;
   color: var(--text-primary);
   font-weight: 500;
+  min-width: 0;
+  transition: background-color 0.15s ease;
+}
+
+.user-chip:hover {
+  background: var(--surface-2);
+}
+
+.user-chip.active {
+  background: var(--surface-3);
+}
+
+.user-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .avatar {
@@ -175,6 +192,13 @@ h3 {
   font-weight: 600;
   color: var(--text-secondary);
   flex: none;
+  overflow: hidden;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .sidebar-actions {
@@ -219,8 +243,11 @@ h3 {
   .brand-name,
   .nav-label,
   .nav-tag,
-  .user-chip {
+  .user-name {
     display: none;
+  }
+  .user-chip {
+    padding: 4px;
   }
   .sidebar-footer {
     margin: 0 0 0 auto;
@@ -2623,6 +2650,71 @@ tbody tr:last-child td {
   justify-content: flex-end;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+/* ---------- Mon compte: profile ---------- */
+.profile-photo {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin: 4px 0 20px;
+}
+
+.profile-photo-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.profile-save {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.profile-save .success-text {
+  margin: 0;
+}
+
+/* ---------- Confirmation dialog (replaces the browser's confirm box) ---------- */
+.modal-backdrop.confirm-backdrop {
+  z-index: 60; /* above any other modal, e.g. the expense editor */
+}
+
+.modal.confirm-dialog {
+  max-width: 420px;
+}
+
+.confirm-dialog h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.confirm-dialog p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.btn-danger-solid {
+  background: color-mix(in srgb, var(--critical) 16%, transparent);
+  border-color: color-mix(in srgb, var(--critical) 45%, transparent);
+  color: var(--critical);
+  font-weight: 600;
+}
+
+.btn-danger-solid:hover {
+  background: color-mix(in srgb, var(--critical) 26%, transparent);
 }
 
 /* ---------- Physical assets: vehicles and gold ---------- */

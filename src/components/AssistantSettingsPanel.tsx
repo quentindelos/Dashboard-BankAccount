@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import {
   DEFAULT_SETTINGS,
   DETAIL_LABEL,
@@ -395,18 +396,18 @@ export default function AssistantSettingsPanel({
         />
       </div>
       <div className="field">
-        <label htmlFor="as-profile">À propos de moi (une info par ligne)</label>
+        <label htmlFor="as-profile">Autres précisions (une info par ligne)</label>
         <textarea
           id="as-profile"
           rows={5}
           maxLength={4000}
-          placeholder="Situation familiale, rattachement fiscal, épargne salariale Thales, projets..."
+          placeholder="Épargne salariale Thales et abondement, projets, études..."
           value={form.profile}
           onChange={(e) => set("profile", e.target.value)}
         />
         <span className="field-hint">
-          Plus il en sait (situation familiale, rattachement au foyer des parents, PEE Thales et abondement...), plus ses montages
-          sont précis.
+          Âge, situation familiale et pro, logement et foyer fiscal se renseignent dans <Link href="/profile">Mon compte</Link>. Ajoute
+          ici le reste (PEE Thales et abondement, projets...) : plus il en sait, plus ses montages sont précis.
         </span>
       </div>
       <div className="field">

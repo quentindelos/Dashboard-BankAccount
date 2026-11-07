@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { eur0 } from "@/components/ui";
 import { importTrExport, type TrImportResult } from "@/lib/trImportClient";
+import { confirmDialog } from "@/components/ConfirmDialog";
 
 const dateFmt = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 
@@ -18,7 +19,12 @@ export default function TradeRepublicImport() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (inputRef.current) inputRef.current.value = "";
-    if (!confirm("L'historique du PEA, du CTO et du compte Crypto va être remplacé par celui de Trade Republic. Continuer ?")) return;
+    const ok = await confirmDialog({
+      title: "Remplacer l'historique ?",
+      message: "L'historique du PEA, du CTO et du compte Crypto va être remplacé par celui de cet export Trade Republic.",
+      confirmLabel: "Importer",
+    });
+    if (!ok) return;
     setError("");
     setResult(null);
     setLoading(true);

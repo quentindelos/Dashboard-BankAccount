@@ -17,10 +17,12 @@ import {
 } from "@/lib/projection";
 import { loadProjectionSettings } from "@/lib/projectionSettings";
 import { getSettings } from "@/lib/settings";
+import { loadProfile } from "@/lib/profile";
 import ProjectionView from "@/components/ProjectionView";
 
-// The Livret Jeune must be closed by 31 December of the year of the 25th birthday.
-const YOUTH_CLOSE_YEAR = 2029;
+// The Livret Jeune must be closed by 31 December of the year of the 25th
+// birthday: from the birth date on Mon compte, else this default.
+const DEFAULT_YOUTH_CLOSE_YEAR = 2029;
 
 const tokens = (s: string) =>
   s
@@ -31,12 +33,14 @@ const tokens = (s: string) =>
     .filter(Boolean);
 
 export default async function ProjectionPage() {
-  const [data, expenses, saved, settings] = await Promise.all([
+  const [data, expenses, saved, settings, profile] = await Promise.all([
     loadPortfolio(),
     prisma.recurringExpense.findMany({ where: { active: true } }),
     loadProjectionSettings(),
     getSettings(),
+    loadProfile(),
   ]);
+  const youthCloseYear = profile.birthDate ? Number(profile.birthDate.slice(0, 4)) + 25 : DEFAULT_YOUTH_CLOSE_YEAR;
   // Safety cushion: same target as on the Synthèse (monthly expenses × months).
   const cushionTarget = settings.monthlyExpenses ? settings.monthlyExpenses * settings.cushionMonths : undefined;
   const cushionIds = new Set(data.otherAssets.filter((o) => o.emergencyFund).map((o) => o.accountId));
@@ -140,7 +144,7 @@ export default async function ProjectionPage() {
     <ProjectionView
       accounts={accounts}
       initialYears={saved.years ?? 10}
-      youthCloseYear={YOUTH_CLOSE_YEAR}
+      youthCloseYear={youthCloseYear}
       initialOverflowTo={overflowTo}
       investable={investable.map((a) => ({ id: a.id, name: a.name }))}
       inflation={DEFAULT_INFLATION}

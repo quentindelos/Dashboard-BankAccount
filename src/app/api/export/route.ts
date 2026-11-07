@@ -66,6 +66,8 @@ export async function GET() {
   return new NextResponse(JSON.stringify(payload, null, 2), {
     headers: {
       "Content-Type": "application/json",
+      // Full financial history: never kept by the browser or a proxy cache.
+      "Cache-Control": "no-store",
       "Content-Disposition": `attachment; filename="patrimoine-export-${payload.exportedAt.slice(0, 10)}.json"`,
     },
   });

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { eur0 } from "@/components/ui";
+import { confirmDialog } from "@/components/ConfirmDialog";
 
 export interface AssetCardData {
   id: string;
@@ -70,7 +71,7 @@ export default function AssetsManager({ assets: initial }: { assets: AssetCardDa
   }
 
   async function archive(asset: AssetCardData) {
-    if (!confirm(`Retirer « ${asset.name} » de ton patrimoine ? Son historique est conservé.`)) return;
+    if (!(await confirmDialog({ title: `Retirer « ${asset.name} » ?`, message: "Il sort de ton patrimoine. Son historique est conservé.", confirmLabel: "Retirer", danger: true }))) return;
     const res = await fetch(`/api/accounts/${asset.id}`, { method: "DELETE" }).catch(() => null);
     if (res?.ok) {
       setAssets((all) => all.filter((a) => a.id !== asset.id));

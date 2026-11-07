@@ -14,7 +14,9 @@ import ChecklistCard from "@/components/ChecklistCard";
 
 export default async function DashboardPage() {
   await refreshValuations();
-  const [data, settings, checklist] = await Promise.all([loadPortfolio(), getSettings(), buildChecklist()]);
+  const dataP = loadPortfolio();
+  const settingsP = getSettings();
+  const [data, settings, checklist] = await Promise.all([dataP, settingsP, buildChecklist(new Date(), { data: dataP, settings: settingsP })]);
 
   if (data.accounts.length === 0) {
     return (
