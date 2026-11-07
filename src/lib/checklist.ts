@@ -32,6 +32,9 @@ const MANUAL_MAX_DAYS = 31;
 const DAY = 86_400_000;
 const dateFormat = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 
+/** "de Livret Bleu" but "d'Assurance Vie". */
+const de = (name: string) => (/^[aeiouyhàâéèêëîïôöùûü]/i.test(name) ? `d'${name}` : `de ${name}`);
+
 function age(date: Date, now: Date): string {
   const days = Math.floor((now.getTime() - date.getTime()) / DAY);
   return `dernier relevé le ${dateFormat.format(date)}, il y a ${days} jours`;
@@ -82,7 +85,7 @@ export async function buildChecklist(now = new Date()): Promise<ChecklistItem[]>
       items.push({
         id: `entry-${a.id}`,
         level: "missing",
-        title: `Saisis la valeur de ${a.name}`,
+        title: `Saisis la valeur ${de(a.name)}`,
         detail: "Aucun relevé pour ce compte : il compte pour 0 € dans ton patrimoine.",
         href: `/accounts/${a.id}`,
         action: "Saisir",
@@ -91,7 +94,7 @@ export async function buildChecklist(now = new Date()): Promise<ChecklistItem[]>
       items.push({
         id: `entry-${a.id}`,
         level: "late",
-        title: `Mets à jour le solde de ${a.name}`,
+        title: `Mets à jour le solde ${de(a.name)}`,
         detail: `${age(last, now)}.`,
         href: `/accounts/${a.id}`,
         action: "Mettre à jour",
@@ -138,7 +141,7 @@ export async function buildChecklist(now = new Date()): Promise<ChecklistItem[]>
       level: "missing",
       title: "Choisis ton matelas de sécurité",
       detail: "Le ou les livrets qui servent d'épargne de précaution.",
-      href: "/settings",
+      href: "/expenses",
       action: "Choisir",
     });
   }

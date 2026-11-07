@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import Sidebar from "@/components/Sidebar";
 import TrDropZone from "@/components/TrDropZone";
+import ReminderPopup from "@/components/ReminderPopup";
 
 // Everything under this layout is private financial data tied to the
 // current session, so never statically prerender or cache it.
@@ -18,6 +19,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <main className="container">{children}</main>
       </div>
       <TrDropZone />
+      <ReminderPopup />
     </div>
   );
 }

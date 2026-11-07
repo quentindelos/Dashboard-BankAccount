@@ -2608,3 +2608,19 @@ tbody tr:last-child td {
 .checkbox-field .muted {
   font-size: 12px;
 }
+
+/* ---------- Popup: data out of date ---------- */
+.modal.reminder-popup {
+  max-width: 580px;
+}
+
+.reminder-popup .checklist-list {
+  margin: 0 0 16px;
+}
+
+.reminder-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
