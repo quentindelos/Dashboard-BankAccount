@@ -4,9 +4,12 @@ import AccountDetail from "@/components/AccountDetail";
 import { findInstrument } from "@/lib/instruments";
 import { institutionLogo, instrumentLogo } from "@/lib/logos";
 import { investedSeries } from "@/lib/invested";
+import { parseGoldDetails, parseVehicleDetails } from "@/lib/physicalAssets";
+import { refreshValuations } from "@/lib/valuations";
 
 export default async function AccountPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  await refreshValuations();
   const account = await prisma.account.findUnique({
     where: { id },
     include: {
@@ -27,6 +30,9 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
         note: account.note,
         logo: institutionLogo(account.institution),
         contributions: account.contributions,
+        photo: account.photo,
+        gold: account.type === "OR" ? parseGoldDetails(account.details) : null,
+        vehicle: account.type === "VEHICULE" ? parseVehicleDetails(account.details) : null,
       }}
       entries={account.entries.map((e, i) => ({ id: e.id, date: e.date.toISOString(), value: e.value, invested: invested?.[i] ?? null, note: e.note }))}
       positions={account.positions.map((p) => ({

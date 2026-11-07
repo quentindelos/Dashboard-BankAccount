@@ -164,3 +164,17 @@
   --radius: 18px;
   --radius-sm: 10px;
 }
+
+/* Physical assets (gold, vehicles): outside the 8-slot series palette. */
+:root,
+:root[data-theme="nuit"],
+:root[data-theme="degrade"],
+:root[data-theme="dore"] {
+  --asset-gold: #d9a93a;
+  --asset-vehicle: #94a3b8;
+}
+
+:root[data-theme="clair"] {
+  --asset-gold: #b8891a;
+  --asset-vehicle: #64748b;
+}

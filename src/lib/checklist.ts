@@ -7,7 +7,7 @@ import { loadPortfolio } from "@/lib/portfolio";
 import { computeGains } from "@/lib/gains";
 import { analyzePortfolio } from "@/lib/analysis";
 import { getSettings } from "@/lib/settings";
-import { isTradeRepublic } from "@/lib/accountTypes";
+import { PHYSICAL_TYPES, isTradeRepublic } from "@/lib/accountTypes";
 import { isIncome, isSavings } from "@/lib/expenses";
 import { loadProjectionSettings } from "@/lib/projectionSettings";
 import { loadAssistantSettings } from "@/lib/assistantSettings";
@@ -46,7 +46,7 @@ export async function buildChecklist(now = new Date()): Promise<ChecklistItem[]>
   const [accounts, data, settings, expenses, projection, assistant, memories, cushionAccounts] = await Promise.all([
     prisma.account.findMany({
       where: { archived: false },
-      select: { id: true, name: true, institution: true, entries: { select: { date: true }, orderBy: { date: "desc" }, take: 1 } },
+      select: { id: true, name: true, type: true, details: true, institution: true, entries: { select: { date: true }, orderBy: { date: "desc" }, take: 1 } },
       orderBy: { createdAt: "asc" },
     }),
     loadPortfolio(),
@@ -80,6 +80,20 @@ export async function buildChecklist(now = new Date()): Promise<ChecklistItem[]>
   }
   for (const a of accounts) {
     if (isTradeRepublic(a.institution)) continue;
+    // Gold and vehicles are valued by the app from their description.
+    if (PHYSICAL_TYPES.has(a.type)) {
+      if (!a.details) {
+        items.push({
+          id: `describe-${a.id}`,
+          level: "missing",
+          title: a.type === "VEHICULE" ? `Décris ton véhicule ${a.name}` : `Décris ton or (${a.name})`,
+          detail: a.type === "VEHICULE" ? "Marque, modèle, année et kilométrage : l'IA estime sa cote à partir des annonces." : "Pièces ou lingots et poids : la valeur suit le cours de l'or chaque jour.",
+          href: `/accounts/${a.id}`,
+          action: "Décrire",
+        });
+      }
+      continue;
+    }
     const last = a.entries[0]?.date;
     if (!last) {
       items.push({

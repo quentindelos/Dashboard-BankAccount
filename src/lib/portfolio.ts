@@ -25,7 +25,7 @@ export interface OtherAssetRow {
 }
 
 export interface PortfolioData {
-  accounts: { id: string; name: string; type: string; institution: string | null; contributions: number | null }[];
+  accounts: { id: string; name: string; type: string; institution: string | null; contributions: number | null; photo: string | null }[];
   series: NetWorthPoint[];
   total: number;
   /** Latest position snapshot of every account that has one. */
@@ -95,7 +95,7 @@ export async function loadPortfolio(): Promise<PortfolioData> {
   holdings.sort((x, y) => y.value - x.value);
 
   return {
-    accounts: accounts.map((a) => ({ id: a.id, name: a.name, type: a.type, institution: a.institution, contributions: a.contributions })),
+    accounts: accounts.map((a) => ({ id: a.id, name: a.name, type: a.type, institution: a.institution, contributions: a.contributions, photo: a.photo })),
     series,
     total: latest?.total ?? 0,
     holdings,

@@ -97,7 +97,7 @@ export function parseTrades(rows: SheetRow[]): { trades: Trade[]; peaCash: { day
 
 const UA = { headers: { "User-Agent": "Mozilla/5.0 (patrimoine-dashboard)" } };
 
-async function yahooChart(symbol: string, from: string): Promise<{ currency: string; closes: Map<string, number> } | null> {
+export async function yahooChart(symbol: string, from: string): Promise<{ currency: string; closes: Map<string, number> } | null> {
   const p1 = Math.floor(Date.parse(from) / 1000) - 15 * 86400;
   const p2 = Math.floor(Date.now() / 1000) + 86400;
   const res = await fetch(
@@ -128,7 +128,7 @@ async function yahooSearch(isin: string): Promise<string[]> {
 }
 
 /** Last known value on or before `day`. `days` must be sorted ascending. */
-function makeLookup(series: Map<string, number>) {
+export function makeLookup(series: Map<string, number>) {
   const days = [...series.keys()].sort();
   return (day: string): number | null => {
     let lo = 0;

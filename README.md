@@ -119,6 +119,23 @@ Sur les courbes, deux relevés d'un compte de placement sont reliés en ligne
 droite, pour ne pas afficher une fausse chute le jour du relevé suivant. Les
 livrets restent en escalier.
 
+### Or physique et véhicules
+
+Deux types de comptes décrivent des biens plutôt que des placements :
+
+- **Or physique** : pièces (Napoléon, Krugerrand...) ou lingots en grammes.
+  La valeur suit le cours de l'or du jour (Yahoo Finance, converti en
+  euros), recalculée à l'ouverture de l'app, avec un historique depuis la
+  date d'achat.
+- **Véhicule** : marque, modèle, année, kilométrage, état et une photo. Le
+  modèle du Conseiller (Gemini ou Claude) estime la cote à partir des
+  annonces et cotes trouvées sur le web, tous les 30 jours ou à la demande.
+  Il faut donc une clé d'IA (voir plus bas). Les photos sont rangées dans
+  `data/photos/` et ne font pas partie de l'export JSON.
+
+Les véhicules comptent dans le patrimoine total, mais pas dans l'analyse,
+la plus-value ni la projection.
+
 ### Rappels « À mettre à jour »
 
 En haut de la Synthèse, et en pastille dans le menu, l'app liste ce qui est en

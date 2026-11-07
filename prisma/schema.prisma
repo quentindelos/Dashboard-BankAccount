@@ -42,6 +42,11 @@ model Account {
   archived    Boolean  @default(false)
   emergencyFund Boolean @default(false) // counts toward the safety cushion ("matelas de sécurité")
   contributions Float? // total paid in (net deposits), for accounts without positions: gain = value - contributions
+  // Physical assets (types OR and VEHICULE): JSON description used to value
+  // them (coins and bars for gold; make, model, year, mileage for a vehicle).
+  details     String?
+  // File name of the account's photo in data/photos (vehicles).
+  photo       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   entries     Entry[]

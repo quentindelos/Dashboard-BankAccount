@@ -17,7 +17,9 @@ import TimeSeriesChart, {
 import { Delta, eur0, formatPct, signed } from "@/components/ui";
 import AnimatedNumber from "@/components/AnimatedNumber";
 import Logo from "@/components/Logo";
+import PhysicalAssetCard from "@/components/PhysicalAssetCard";
 import type { LogoKey } from "@/lib/logos";
+import { photoUrl, type GoldDetails, type VehicleDetails } from "@/lib/physicalAssets";
 
 interface EntryRow {
   id: string;
@@ -59,6 +61,9 @@ export default function AccountDetail({
     note: string | null;
     logo: LogoKey | null;
     contributions: number | null;
+    photo: string | null;
+    gold: GoldDetails | null;
+    vehicle: VehicleDetails | null;
   };
   entries: EntryRow[];
   positions: PositionRow[];
@@ -178,7 +183,12 @@ export default function AccountDetail({
           {account.institution ? ` · ${account.institution}` : ""}
         </div>
         <h1 style={{ margin: "4px 0 2px", display: "flex", alignItems: "center", gap: 10 }}>
-          <Logo logo={account.logo} name={account.institution ?? account.name} size={30} />
+          {account.photo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img className="asset-avatar" src={photoUrl(account.id, account.photo)} alt="" width={36} height={36} />
+          ) : (
+            <Logo logo={account.logo} name={account.institution ?? account.name} size={30} />
+          )}
           {account.name}
         </h1>
         <div className="hero-value" style={{ fontSize: 34 }}><AnimatedNumber value={latestValue} /></div>
@@ -212,13 +222,15 @@ export default function AccountDetail({
         </div>
         <TimeSeriesChart
           rows={chartRows}
-          curve={account.type === "LIVRET" ? "stepAfter" : "linear"}
+          curve={account.type === "LIVRET" || account.type === "VEHICULE" ? "stepAfter" : "linear"}
           height={240}
           seriesLabel={account.name}
           onZoom={setZoom}
         />
         {allRows.length > 2 && <ZoomHint />}
       </div>
+
+      <PhysicalAssetCard account={account} />
 
       {positionDates.length > 0 && (
         <div className="card">
@@ -284,7 +296,7 @@ export default function AccountDetail({
         </div>
       )}
 
-      {positions.length === 0 && !managed && (
+      {positions.length === 0 && !managed && account.type !== "VEHICULE" && (
         <div className="card">
           <h2>Total versé</h2>
           <p className="secondary" style={{ marginTop: -4 }}>

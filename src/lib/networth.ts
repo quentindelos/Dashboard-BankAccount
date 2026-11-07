@@ -28,7 +28,8 @@ export interface NetWorthPoint {
   byAccount: Record<string, number>;
 }
 
-const STEP_TYPES = new Set(["LIVRET"]);
+// A vehicle's value only moves with a new estimate.
+const STEP_TYPES = new Set(["LIVRET", "VEHICULE"]);
 
 export function buildNetWorthSeries(accounts: AccountLike[], entries: EntryLike[]): NetWorthPoint[] {
   if (accounts.length === 0) return [];

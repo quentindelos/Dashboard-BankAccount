@@ -48,13 +48,16 @@ export default function SynthesisView({
   advice,
   riskLevel,
   volatility,
+  vehicles = 0,
 }: {
+  /** Value of the vehicles included in the total. */
+  vehicles?: number;
   rows: TimeRow[];
   accountSeries: { key: string; label: string; color: string }[];
   /** Accounts whose invested amount is known day by day. */
   investedAccounts: { id: string; name: string }[];
   total: number;
-  accounts: { id: string; name: string; type: string; institution: string | null; logo: LogoKey | null; value: number }[];
+  accounts: { id: string; name: string; type: string; institution: string | null; logo: LogoKey | null; photoUrl?: string | null; value: number }[];
   gains: GainSummary;
   invested: number;
   cushion: Cushion;
@@ -93,6 +96,11 @@ export default function SynthesisView({
         {/* ---- Net worth hero ---- */}
         <section className="card hero">
           <div className="hero-value"><AnimatedNumber value={total} duration={900} /></div>
+          {vehicles > 0 && (
+            <div className="muted" style={{ fontSize: 13, marginTop: -4 }}>
+              dont {eur0.format(vehicles)} de véhicules
+            </div>
+          )}
           {netChange ? (
             investedGain ? (
               <Delta value={investedGain.change} pct={investedGain.pct} />
@@ -240,7 +248,12 @@ export default function SynthesisView({
             {accounts.map((a) => (
               <Link key={a.id} href={`/accounts/${a.id}`} className="alloc-row" style={{ color: "inherit" }}>
                 <span className="legend-item" style={{ fontSize: 13, color: "var(--text-primary)", gap: 10 }}>
-                  <Logo logo={a.logo} name={a.institution ?? a.name} color={accountTypeCssVar(a.type)} size={26} />
+                  {a.photoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img className="asset-avatar" src={a.photoUrl} alt="" width={26} height={26} />
+                  ) : (
+                    <Logo logo={a.logo} name={a.institution ?? a.name} color={accountTypeCssVar(a.type)} size={26} />
+                  )}
                   {a.name}
                   <span className="muted">{a.institution ? `· ${a.institution}` : ""}</span>
                   {cushion.accounts.some((c) => c.name === a.name) && <span className="pill">Matelas</span>}

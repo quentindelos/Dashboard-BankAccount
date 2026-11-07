@@ -16,9 +16,15 @@ export const ACCOUNT_TYPE_META: Record<
   EPARGNE_SALARIALE: { label: "Épargne salariale (PEE / PERCOL)", short: "PEE", colorLight: "#008300", colorDark: "#008300", cssVar: "var(--series-6)" },
   CRYPTO: { label: "Crypto", short: "Crypto", colorLight: "#6250d6", colorDark: "#9085e9", cssVar: "var(--series-7)" },
   AUTRE: { label: "Autre", short: "Autre", colorLight: "#e34948", colorDark: "#e66767", cssVar: "var(--series-8)" },
+  // Physical assets, outside the 8-slot palette: gold and a neutral slate.
+  OR: { label: "Or physique", short: "Or", colorLight: "#b8891a", colorDark: "#d9a93a", cssVar: "var(--asset-gold)" },
+  VEHICULE: { label: "Véhicule", short: "Véhicule", colorLight: "#64748b", colorDark: "#94a3b8", cssVar: "var(--asset-vehicle)" },
 };
 
-export const ACCOUNT_TYPE_ORDER = ["ASSURANCE_VIE", "LIVRET", "CTO", "PEA", "PER", "EPARGNE_SALARIALE", "CRYPTO", "AUTRE"] as const;
+export const ACCOUNT_TYPE_ORDER = ["ASSURANCE_VIE", "LIVRET", "CTO", "PEA", "PER", "EPARGNE_SALARIALE", "CRYPTO", "OR", "VEHICULE", "AUTRE"] as const;
+
+/** Things you own rather than accounts you pay into: valued from their own description. */
+export const PHYSICAL_TYPES = new Set(["OR", "VEHICULE"]);
 
 // Slots not used by any account type, handed to the 2nd, 3rd, etc. account of a
 // type that already appears (e.g. two livrets) in per-account charts.

@@ -5,12 +5,15 @@ import { getSettings } from "@/lib/settings";
 import { accountColors } from "@/lib/accountTypes";
 import { findInstrument } from "@/lib/instruments";
 import { institutionLogo, instrumentLogo } from "@/lib/logos";
+import { photoUrl } from "@/lib/physicalAssets";
+import { refreshValuations } from "@/lib/valuations";
 import SynthesisView from "@/components/SynthesisView";
 import { computeGains } from "@/lib/gains";
 import { buildChecklist } from "@/lib/checklist";
 import ChecklistCard from "@/components/ChecklistCard";
 
 export default async function DashboardPage() {
+  await refreshValuations();
   const [data, settings, checklist] = await Promise.all([loadPortfolio(), getSettings(), buildChecklist()]);
 
   if (data.accounts.length === 0) {
@@ -47,6 +50,7 @@ export default async function DashboardPage() {
       type: a.type,
       institution: a.institution,
       logo: institutionLogo(a.institution),
+      photoUrl: a.photo ? photoUrl(a.id, a.photo) : null,
       value: latest?.byAccount[a.id] ?? 0,
     }))
     .filter((a) => a.value !== 0)
@@ -86,6 +90,7 @@ export default async function DashboardPage() {
       advice={analysis.advice}
       riskLevel={analysis.riskLevel}
       volatility={analysis.investedVolatility}
+      vehicles={accounts.filter((a) => a.type === "VEHICULE").reduce((s, a) => s + a.value, 0)}
       />
     </>
   );

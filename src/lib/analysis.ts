@@ -107,6 +107,7 @@ function otherAssetClass(o: OtherAssetRow): AssetClassKey {
   const type = o.accountType;
   if (type === "LIVRET") return "liquidites";
   if (type === "ASSURANCE_VIE" || type === "PER") return "fonds_euros";
+  if (type === "OR") return "or";
   return "autre";
 }
 
@@ -184,7 +185,9 @@ const eur = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR",
 const monthYear = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" });
 const pct = (x: number, digits = 0) => `${(x * 100).toFixed(digits).replace(".", ",")} %`;
 
-export function analyzePortfolio(holdings: HoldingRow[], otherAssets: OtherAssetRow[], settings: AppSettings): Analysis {
+export function analyzePortfolio(holdings: HoldingRow[], allOtherAssets: OtherAssetRow[], settings: AppSettings): Analysis {
+  // Vehicles count in the net worth but not in the analysis of the savings and investments.
+  const otherAssets = allOtherAssets.filter((o) => o.accountType !== "VEHICULE");
   const lines: Line[] = [
     ...holdings.map((h) => {
       const meta = findInstrument(h.isin, h.name);

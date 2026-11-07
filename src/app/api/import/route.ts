@@ -20,6 +20,7 @@ const importSchema = z.object({
       archived: z.boolean().optional(),
       emergencyFund: z.boolean().optional(),
       contributions: z.number().finite().nullable().optional(),
+      details: z.string().max(20000).nullable().optional(),
       entries: z.array(
         z.object({
           date: z.string().refine((v) => !Number.isNaN(Date.parse(v))),
@@ -93,6 +94,7 @@ export async function POST(request: NextRequest) {
           note: acc.note || null,
           archived: acc.archived ?? false,
           emergencyFund: acc.emergencyFund ?? false,
+          ...(acc.details !== undefined && { details: acc.details }),
         };
         await tx.account.upsert({
           where: { id: acc.id },

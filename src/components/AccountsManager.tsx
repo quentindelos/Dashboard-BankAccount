@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { accountTypeLabel, ACCOUNT_TYPE_ORDER } from "@/lib/accountTypes";
+import { accountTypeLabel, ACCOUNT_TYPE_ORDER, PHYSICAL_TYPES } from "@/lib/accountTypes";
 import Logo from "@/components/Logo";
 import type { LogoKey } from "@/lib/logos";
 
@@ -13,6 +13,7 @@ interface AccountRow {
   type: string;
   institution: string | null;
   logo?: LogoKey | null;
+  photoUrl?: string | null;
   latestValue: number | null;
   latestDate: string | null;
 }
@@ -38,11 +39,16 @@ export default function AccountsManager({ initialAccounts }: { initialAccounts: 
       const res = await fetch("/api/accounts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, type, institution }),
+        body: JSON.stringify({ name, type, institution: PHYSICAL_TYPES.has(type) ? "" : institution }),
       });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "Erreur lors de la création.");
+        return;
+      }
+      // A vehicle or gold is described on its own page: open it right away.
+      if (PHYSICAL_TYPES.has(type)) {
+        router.push(`/accounts/${data.account.id}`);
         return;
       }
       setAccounts((prev) => [...prev, { ...data.account, latestValue: null, latestDate: null }]);
@@ -77,7 +83,14 @@ export default function AccountsManager({ initialAccounts }: { initialAccounts: 
           {error && <p className="error-text">{error}</p>}
           <div className="field">
             <label htmlFor="name">Nom du compte</label>
-            <input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="ex: Livret A" required maxLength={100} />
+            <input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={type === "VEHICULE" ? "ex : 106 S16" : type === "OR" ? "ex : Napoléons" : "ex : Livret A"}
+              required
+              maxLength={100}
+            />
           </div>
           <div className="field">
             <label htmlFor="type">Type</label>
@@ -89,10 +102,16 @@ export default function AccountsManager({ initialAccounts }: { initialAccounts: 
               ))}
             </select>
           </div>
-          <div className="field">
-            <label htmlFor="institution">Établissement (optionnel)</label>
-            <input id="institution" value={institution} onChange={(e) => setInstitution(e.target.value)} placeholder="ex: Boursorama" maxLength={100} />
-          </div>
+          {PHYSICAL_TYPES.has(type) ? (
+            <p className="muted" style={{ fontSize: 13 }}>
+              Tu décriras {type === "VEHICULE" ? "le véhicule (et sa photo)" : "tes pièces ou lingots"} juste après : sa valeur sera calculée automatiquement.
+            </p>
+          ) : (
+            <div className="field">
+              <label htmlFor="institution">Établissement (optionnel)</label>
+              <input id="institution" value={institution} onChange={(e) => setInstitution(e.target.value)} placeholder="ex: Boursorama" maxLength={100} />
+            </div>
+          )}
           <button className="btn btn-primary" disabled={loading} type="submit">
             {loading ? "..." : "Créer"}
           </button>
@@ -120,7 +139,12 @@ export default function AccountsManager({ initialAccounts }: { initialAccounts: 
               <tr key={a.id}>
                 <td>
                   <span className="name-with-logo">
-                    <Logo logo={a.logo} name={a.institution ?? a.name} size={26} />
+                    {a.photoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img className="asset-avatar" src={a.photoUrl} alt="" width={26} height={26} />
+                    ) : (
+                      <Logo logo={a.logo} name={a.institution ?? a.name} size={26} />
+                    )}
                     <Link href={`/accounts/${a.id}`}>{a.name}</Link>
                   </span>
                 </td>

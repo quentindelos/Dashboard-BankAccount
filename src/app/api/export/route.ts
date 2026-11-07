@@ -48,6 +48,8 @@ export async function GET() {
       archived: a.archived,
       emergencyFund: a.emergencyFund,
       contributions: a.contributions,
+      // Description of gold or a vehicle (photos are files, not exported).
+      details: a.details,
       entries: a.entries.map((e) => ({ date: e.date.toISOString(), value: e.value, invested: e.invested, note: e.note })),
       positions: a.positions.map((p) => ({
         date: p.date.toISOString(),

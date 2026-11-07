@@ -2624,3 +2624,129 @@ tbody tr:last-child td {
   flex-wrap: wrap;
   gap: 8px;
 }
+
+/* ---------- Physical assets: vehicles and gold ---------- */
+.asset-avatar {
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--surface-2);
+}
+
+.asset-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 760px) {
+  .asset-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.asset-photo-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.asset-photo {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  animation: fade-in 0.3s ease both;
+}
+
+.asset-photo-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.asset-photo-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.asset-photo-empty:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.asset-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0 12px;
+}
+
+.asset-estimate {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.asset-estimate-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.asset-estimate-head h3 {
+  margin: 0;
+}
+
+.asset-estimate-value {
+  font-size: 26px;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+
+.asset-estimate-value .muted {
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.asset-sources {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 12px;
+}
+
+.gold-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.gold-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(70px, 1fr) minmax(90px, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .asset-photo {
+    animation: none;
+  }
+}
